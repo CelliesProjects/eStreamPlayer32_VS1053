@@ -773,6 +773,11 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
 
     if (!playList.isUpdated) return;
 
+    {
+        String s;
+        ws.textAll(playList.toString(s));
+    }
+
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
     ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     if (startNow) {
@@ -805,10 +810,10 @@ void startCurrentItem() {
 
     ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
 
+    updateHighlightedItemOnClients();
+
     if (!startPlaylistItem(item))
         ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
-
-    updateHighlightedItemOnClients();
 }
 
 void loop() {
