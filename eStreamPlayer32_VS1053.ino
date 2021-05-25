@@ -654,12 +654,12 @@ String& favoritesToString(String& s) {
 }
 
 bool startPlaylistItem(const playListItem& item) {
+    audio.stopSong();
     switch (item.type) {
         case HTTP_FILE :
             ESP_LOGD(TAG, "STARTING file: %s", item.url.c_str());
             audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
             audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
-            audio.stopSong();
             if (LIBRARY_USER || LIBRARY_PWD)
                 audio.connecttohost(urlEncode(item.url), LIBRARY_USER, LIBRARY_PWD);
             else
@@ -669,21 +669,18 @@ bool startPlaylistItem(const playListItem& item) {
             ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());
             audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
             audio_showstreamtitle("");
-            audio.stopSong();
             audio.connecttohost(urlEncode(item.url));
             break;
         case HTTP_PRESET :
             ESP_LOGD(TAG, "STARTING preset: %s -> %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
             audio_showstreamtitle("");
             audio_showstation(preset[item.index].name.c_str());
-            audio.stopSong();
             audio.connecttohost(urlEncode(preset[item.index].url));
             break;
         case HTTP_FAVORITE :
             ESP_LOGD(TAG, "STARTING favorite: %s -> %s", item.name.c_str(), item.url.c_str());
             audio_showstation(item.name.c_str());
             audio_showstreamtitle("");
-            audio.stopSong();
             audio.connecttohost(urlEncode(item.url));
             break;
         default : ESP_LOGE(TAG, "Unhandled item.type.");
@@ -779,9 +776,9 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
     ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     if (startNow) {
-        audio.stopSong();
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
+        inputReceived = true;
         return;
     }
     if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -806,9 +803,7 @@ void startCurrentItem() {
     playListItem item;
     playList.get(currentItem, item);
 
-    ESP_LOGD(TAG, "Starting playlist item: %i", currentItem);
-
-    audio.stopSong();
+    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
 
     if (!startPlaylistItem(item))
         ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
@@ -828,18 +823,6 @@ void loop() {
         //audio.setVolume(vol);
     }
 
-    if (playList.isUpdated) {
-        {
-            String s;
-            ws.textAll(playList.toString(s));
-        }
-
-        ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-
-        updateHighlightedItemOnClients();
-        playList.isUpdated = false;
-    }
-
     if (newUrl.waiting) {
         handlePastedUrl();
         newUrl.waiting = false;
@@ -853,5 +836,17 @@ void loop() {
         }
         else
             playListHasEnded();
+    }
+
+    if (playList.isUpdated) {
+        {
+            String s;
+            ws.textAll(playList.toString(s));
+        }
+
+        ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
+
+        updateHighlightedItemOnClients();
+        playList.isUpdated = false;
     }
 }
