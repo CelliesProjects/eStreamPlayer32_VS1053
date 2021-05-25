@@ -45,6 +45,7 @@ bool streamClass::startDecoder(const uint8_t CS, const uint8_t DCS, const uint8_
         return false;
     }
     _vs1053->begin();
+    LoadUserCode();
     _vs1053->switchToMp3Mode();
     _vs1053->setVolume(VOLUME);
     return true;
@@ -136,6 +137,7 @@ bool streamClass::connecttohost(const String& url) {
                     audio_showstation(_http->header(ICY_NAME).c_str());
 
                 _remainingBytes = _http->getSize();  // -1 when Server sends no Content-Length header
+                _vs1053->startSong();
                 _url = url;
                 return true;
             }
@@ -206,6 +208,7 @@ void streamClass::stopSong() {
                 stream->flush();
             }
             _http->end();
+            _vs1053->stopSong();
             _currentMimetype = UNKNOWN;
             _url.clear();
             ESP_LOGD(TAG, "closed stream");
@@ -225,4 +228,25 @@ void streamClass::setVolume(const uint8_t vol) {
 
 String streamClass::currentCodec() {
     return mimestr[_currentMimetype];
+}
+
+void streamClass::LoadUserCode(void) {
+    int i = 0;
+    while (i < sizeof(plugin) / sizeof(plugin[0])) {
+        unsigned short addr, n, val;
+        addr = plugin[i++];
+        n = plugin[i++];
+        if (n & 0x8000U) { /* RLE run, replicate n samples */
+            n &= 0x7FFF;
+            val = plugin[i++];
+            while (n--) {
+                _vs1053->write_register(addr, val);
+            }
+        } else {           /* Copy run, copy n samples */
+            while (n--) {
+                val = plugin[i++];
+                _vs1053->write_register(addr, val);
+            }
+        }
+    }
 }

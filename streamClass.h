@@ -5,6 +5,8 @@
 #include <HTTPClient.h>
 #include <VS1053.h>
 
+#include "vs1053b-patches.plg.h"
+
 #define VOLUME  100
 
 #define CONNECT_TIMEOUT_MS     250
@@ -16,6 +18,7 @@ extern void audio_eof_stream(const char*) __attribute__((weak));
 class streamClass {
     private:
         VS1053* _vs1053 = NULL;
+        void LoadUserCode();
     public:
         streamClass();
         ~streamClass();
