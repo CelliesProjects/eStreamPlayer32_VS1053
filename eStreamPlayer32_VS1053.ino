@@ -550,7 +550,11 @@ void setup() {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
         AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-        response->print(SCRIPT_URL);
+        response->println(SCRIPT_URL);
+        if (!LIBRARY_USER.equals("") || !LIBRARY_PWD.equals("")) {
+            response->println(LIBRARY_USER);
+            response->println(LIBRARY_PWD);
+        }
         request->send(response);
     });
 
@@ -656,7 +660,10 @@ bool startPlaylistItem(const playListItem& item) {
             audio_showstation(item.url.substring(item.url.lastIndexOf("/") + 1).c_str());
             audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf("/")).c_str());
             audio.stopSong();
-            audio.connecttohost(urlEncode(item.url));
+            if (LIBRARY_USER || LIBRARY_PWD)
+                audio.connecttohost(urlEncode(item.url), LIBRARY_USER, LIBRARY_PWD);
+            else
+                audio.connecttohost(urlEncode(item.url));
             break;
         case HTTP_STREAM :
             ESP_LOGD(TAG, "STARTING stream: %s", item.url.c_str());

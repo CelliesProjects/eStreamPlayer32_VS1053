@@ -1,11 +1,15 @@
 /* system setup file for eStreamPlayer32_WS1053 */
 
-const char * SSID = "xxx";
-const char * PSK = "xxx";
+const char* SSID = "xxx";
+const char* PSK = "xxx";
 
 #define VS1053_CS     5
 #define VS1053_DCS    21
 #define VS1053_DREQ   22
+
+/* file server login credentials */
+const String LIBRARY_USER = "";
+const String LIBRARY_PWD = "";
 
 /* SCRIPT_URL should point to the php script on the music file server */
 const char * SCRIPT_URL = "http://192.168.0.30/music/eSP32_vs1053.php";

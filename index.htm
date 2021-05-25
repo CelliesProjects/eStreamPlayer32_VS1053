@@ -249,6 +249,8 @@ const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="
 const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 
 var libraryURL = "";
+var libraryUser = "";
+var libraryPwd = "";
 var currentpath='/';
 var scrollPos=[]; //array to keep track of nested folders
 
@@ -257,7 +259,10 @@ function updateLocationBar(){
 }
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
-  $.get(libraryURL + "?folder=" + encodeURIComponent(folder))
+  $.get(libraryURL + "?folder=" + encodeURIComponent(folder),
+  {
+    headers: {'Authorization': 'Basic ' + btoa(libraryUser + ":" + libraryPwd)}
+  })
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -307,8 +312,13 @@ function showMessage(message){
 function refreshAllTabs() {
   $.get(http_host + "/scripturl")
   .done(function(data){
-    libraryURL = data;
-    console.log('script url: ' + data);
+    const libraryData = data.split("\n");
+    libraryURL = libraryData[0];
+    if (libraryData.length > 2) {
+      libraryUser = libraryData[1];
+      libraryPwd = libraryData[2];
+    }
+    console.log('script url: ' + libraryURL);
     scrollPos.push($('#LIBRARY').scrollTop());
     updateLibraryFolder(currentpath, '', true);
 
