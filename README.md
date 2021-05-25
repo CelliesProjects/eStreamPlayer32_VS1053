@@ -1,30 +1,18 @@
-#  eStreamPlayer32
+#  eStreamPlayer32_VS1053
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/09914153dbf84e17bd03149ed945e79c)](https://app.codacy.com/gh/CelliesProjects/eStreamPlayer32?utm_source=github.com&utm_medium=referral&utm_content=CelliesProjects/eStreamPlayer32&utm_campaign=Badge_Grade)
-
-An web-based esp32 program to play webradio and mp3/aac files from a lamp or llmp server.
+An web-based esp32 program to play webradio and mp3/aac/wav files from a lamp or llmp server.
 
 -  Control eStreamPlayer with your phone, pc or tablet.
 -  Play your local files.
 -  Play preset radio stations.
 -  Add new urls and save them to favorites.
 
-Sound output comes from an i2s dac.<br>Currently <b>generic i2s dacs</b> (with `BCK`, `WS` and `DOUT` pins), <b>M5Stack Node</b> and <b>AI Thinker A1S AudioKit</b> are supported.
-
-When flashed to an M5Stack with the Node base you can see some information on the display.
-
-
-![m5screen](https://user-images.githubusercontent.com/24290108/104571384-4e3fa400-5653-11eb-96ae-2202fb19acbf.png)
+Sound output comes from a VS1053 mp3/aac/ogg/wav decoder breakout board.
 
 ###  Limitations
 
-eStreamPlayer is written for playback over http.
-
-The esp32 does not speak NFS or SMB which are common ways to share files over a network.
-<br>Instead eStreamPlayer uses a php script on the server to navigate the music folders. 
-<br>Copy this script to the server to use your music library.
-
-#### This is totally insecure and should only be used on a LAN! 
+1.  Currently ogg playback is not supported.
+2.  eStreamPlayer is written for playback over http.<br>The esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library. <br>**This is totally insecure and should only be used on a LAN!**
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
@@ -48,33 +36,25 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 ### Setup
 
-Use [ESP32 Arduino Core v1.0.6](https://github.com/espressif/arduino-esp32/releases/tag/1.0.6) but NOT LATER to compile. (2.0.0 leaves not enough free ram to init the mp3 decoder)
+Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/releases/latest) to compile.
 
-1.  Download the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32/releases/latest).
-2.  Install the [required libraries](#software-needed) and the drivers for your dac. See [supported hardware](#supported-hardware).
-3.  Copy the php script to your music folder on the server.
-4.  Open the Arduino IDE.
+1.  Download and install the [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) libraries.
+2.  Download and unzip the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32_VS1053/releases/latest).
+3.  Copy the php script (found in the `copy to server` folder) to your music folder on the server.
+4.  Open eStreamPlayer in the Arduino IDE.
 5.  Select `Tools->Partition Scheme->No OTA(2MB APP/2MB FATFS`).
 <br>If your board does not have that option you can select `ESP32 Dev Module` in `Tools->Board`.
 6.  Open `system_setup.h` and set your wifi credentials and set `SCRIPT_URL` to the php script location.
 7.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 8.  On first boot or after a flash erase the fatfs has to be formatted. This will take a couple of seconds.
+<br>You can monitor the boot progress on the serial port.
 <br>Flashing an update will not erase the fatfs data.
 <br>**Note:** Take care to select the same partition table when updating otherwise the partition will be formatted.
-<br>You can monitor the boot progress on the serial port.
 9.  Browse to the ip address shown on the serial port.
-
-### Supported hardware
-
-Select a board or dac by uncommenting the relevant line in `system_setup.h`.
-
--  <b>Generic i2s dac</b> - Select `GENERIC_I2S_DAC` as board.<br>For dacs that only need `BCK`, `WS` and `DOUT` and no driver setup.<br>Default pins are `BCK` = 21, `WS` = 26, `DOUT` = 22.
--  <b>M5 Stack Node</b> - Select `M5STACK_NODE` to compile for M5Stack Node with `MCLK` on `GPIO0`.<br>You need the [wm8978-esp32](https://github.com/CelliesProjects/wm8978-esp32) library for this dac.
--  <b>A1S Audio Kit</b> - Select `A1S_AUDIO_KIT` to compile for ESP32-A1S Audio Kit.<br>You need the [AC101](https://github.com/Yveaux/AC101) library for this dac.
 
 ### Software needed
 
--  [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) (GNU General Public License v3.0)
+-  [vs1053 library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) licensed under [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
 -  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (LGPL-3.0 License)
 -  A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack to serve local files.
