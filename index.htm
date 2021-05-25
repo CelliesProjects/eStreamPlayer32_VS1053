@@ -397,7 +397,7 @@ $(document).ready(function(){
       case "favorites":
         var content = [];
         for(i = 1; i < command.length - 1; i++)
-          content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i].substring(1) + '</span></p>');
+          content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i] + '</span></p>');
         content.sort();
         $('#FAVORITES').html(content);
       break
