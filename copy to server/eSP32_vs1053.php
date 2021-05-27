@@ -25,7 +25,7 @@ if(isset($_GET["folder"])){
   }
 
   //$validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv],[Oo][Gg][Gg]}";
-  $validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv]}";
+  $validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv],[Pp][Ll][Ss],[Mm]3[Uu]}";
 
   foreach(glob($path."*",GLOB_ONLYDIR)as$filename){
     echo '<div class="folderlink">';
