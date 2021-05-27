@@ -7,8 +7,8 @@
 
 #include "vs1053b-patches.plg.h"
 
-#define VOLUME  100
-
+#define VS1053_INITIALVOLUME   93
+#define VS1053_MAXVOLUME       100
 #define CONNECT_TIMEOUT_MS     250
 #define CONNECT_TIMEOUT_MS_SSL 2500
 
@@ -18,7 +18,7 @@ extern void audio_eof_stream(const char*) __attribute__((weak));
 class streamClass {
     private:
         VS1053* _vs1053 = NULL;
-        void LoadUserCode();
+        void _loadUserCode();
     public:
         streamClass();
         ~streamClass();
@@ -34,7 +34,7 @@ class streamClass {
         bool isRunning();
         void stopSong();
         uint8_t getVolume();
-        void setVolume(const uint8_t vol);
+        void setVolume(const uint8_t vol); /* 0-100 but only range 60-100 is used in web interface */
         String currentCodec();
 };
 

@@ -6,6 +6,8 @@ static size_t _remainingBytes = 0;
 static size_t _startrange;
 static String _user;
 static String _pwd;
+static bool _bufferFilled = false;
+static uint8_t _volume = VS1053_INITIALVOLUME;
 
 static enum mimetype_t {
     MP3,
@@ -45,9 +47,9 @@ bool streamClass::startDecoder(const uint8_t CS, const uint8_t DCS, const uint8_
         return false;
     }
     _vs1053->begin();
-    LoadUserCode();
+    _loadUserCode();
     _vs1053->switchToMp3Mode();
-    _vs1053->setVolume(VOLUME);
+    setVolume(_volume);
     return true;
 }
 
@@ -110,6 +112,7 @@ bool streamClass::connecttohost(const String& url) {
     _http->collectHeaders(header, sizeof(header) / sizeof(char*));
 
     _http->setConnectTimeout(url.startsWith("https") ? CONNECT_TIMEOUT_MS_SSL : CONNECT_TIMEOUT_MS);
+    _http->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
     const int _httpCode = _http->GET();
 
@@ -121,8 +124,8 @@ bool streamClass::connecttohost(const String& url) {
 
                 if (_http->header(CONTENT_TYPE).equals("audio/mpeg"))
                     _currentMimetype = MP3;
-                else if (_http->header(CONTENT_TYPE).equals("audio/ogg"))
-                    _currentMimetype = OGG;
+                //else if (_http->header(CONTENT_TYPE).equals("audio/ogg"))
+                //    _currentMimetype = OGG;
                 else if (_http->header(CONTENT_TYPE).equals("audio/wav"))
                     _currentMimetype = WAV;
                 else if (_http->header(CONTENT_TYPE).equals("audio/aac"))
@@ -172,7 +175,19 @@ void streamClass::loop() {
     if (!_http || !_http->connected() || !_vs1053) return;
 
     WiFiClient* const stream = _http->getStreamPtr();
+
     if (!stream->available()) return;
+
+    {
+        const auto HTTP_BUFFERSIZE = 1024 * 6;  /* on song start - try to wait for this amount of bytes in the buffer */
+        const auto MAX_RETRIES = 10;            /* but just start playing after MAX_RETRIES regardless of stored amount*/
+        static auto count = 0;
+        if ((!_bufferFilled && count++ < MAX_RETRIES) && stream->available() < std::min((size_t)HTTP_BUFFERSIZE, _remainingBytes))
+            return;
+
+        _bufferFilled = true;
+        count = 0;
+    }
 
     if (_http->connected() && (_remainingBytes > 0 || _remainingBytes == -1)) {
 
@@ -207,6 +222,7 @@ void streamClass::stopSong() {
                 stream->stop();
                 stream->flush();
             }
+            _bufferFilled = false;
             _http->end();
             _vs1053->stopSong();
             _currentMimetype = UNKNOWN;
@@ -219,18 +235,19 @@ void streamClass::stopSong() {
 }
 
 uint8_t streamClass::getVolume() {
-    return _vs1053 ? _vs1053->getVolume() : 0;
+    return _volume;
 }
 
 void streamClass::setVolume(const uint8_t vol) {
-    if (_vs1053) _vs1053->setVolume(vol);
+    _volume = vol;
+    if (_vs1053) _vs1053->setVolume(_volume);
 }
 
 String streamClass::currentCodec() {
     return mimestr[_currentMimetype];
 }
 
-void streamClass::LoadUserCode(void) {
+void streamClass::_loadUserCode(void) {
     int i = 0;
     while (i < sizeof(plugin) / sizeof(plugin[0])) {
         unsigned short addr, n, val;

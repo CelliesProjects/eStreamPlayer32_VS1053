@@ -9,9 +9,6 @@
 #include "index_htm_gz.h"
 #include "icons.h"
 
-#define I2S_MAX_VOLUME      100
-#define I2S_INITIAL_VOLUME  100
-
 const char* VERSION_STRING {
     "eStreamPlayer32_VS1053 v0.0.1"
 };
@@ -159,7 +156,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     pch = strtok(NULL, "\n");
                     if (pch) {
                         const uint8_t volume = atoi(pch);
-                        audio.setVolume(volume > I2S_MAX_VOLUME ? I2S_MAX_VOLUME : volume);
+                        audio.setVolume(volume > VS1053_MAXVOLUME ? VS1053_MAXVOLUME : volume);
                         ws.textAll(VOLUME_HEADER + String(audio.getVolume()));
                     }
                     return;
@@ -467,7 +464,7 @@ void setup() {
     SPI.begin();
 
     audio.startDecoder(VS1053_CS, VS1053_DCS, VS1053_DREQ);
-    audio.setVolume(I2S_INITIAL_VOLUME);
+    audio.setVolume(VS1053_INITIALVOLUME);
 
     if (psramInit()) {
         ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
@@ -654,6 +651,8 @@ String& favoritesToString(String& s) {
 }
 
 bool startPlaylistItem(const playListItem& item) {
+    const auto vol = audio.getVolume();
+    audio.setVolume(0);
     audio.stopSong();
     switch (item.type) {
         case HTTP_FILE :
@@ -685,6 +684,7 @@ bool startPlaylistItem(const playListItem& item) {
             break;
         default : ESP_LOGE(TAG, "Unhandled item.type.");
     }
+    audio.setVolume(vol);
     return audio.isRunning();
 }
 
@@ -706,12 +706,15 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
                     return false;
                 }
                 ESP_LOGD(TAG, "saving stream: %s -> %s", filename.c_str(), item.url.c_str());
+                audio.loop();
                 File file = FFat.open("/" + filename, FILE_WRITE);
                 if (!file) {
                     ESP_LOGE(TAG, "failed to open file for writing");
                     return false;
                 }
+                audio.loop();
                 bool result = file.print(item.url.c_str());
+                audio.loop();
                 file.close();
                 ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename);
                 return result;
@@ -735,24 +738,26 @@ void handlePastedUrl() {
     }
 
     ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
-    audio.stopSong();
-    audio_showstreamtitle("starting new stream");
-    audio_showstation("");
     const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
+    playList.add(item);
+    {
+        String s;
+        ws.textAll(playList.toString(s));
+    }
+    currentItem = playList.size() - 1;
+    updateHighlightedItemOnClients();
+
     if (startPlaylistItem(item)) {
         ESP_LOGD(TAG, "url started successful");
-        playList.add(item);
-
-        currentItem = playList.size() - 1;
         playerStatus = PLAYING;
-        audio_showstation(newUrl.url.c_str());
     }
     else {
         char buff[100];
         snprintf(buff, sizeof(buff), "%sFailed to play stream", MESSAGE_HEADER);
         ws.text(newUrl.clientId, buff);
+        playList.remove(playList.size() - 1);
         playListHasEnded();
-        ESP_LOGI(TAG, "url failed to start");
+        ESP_LOGD(TAG, "url failed to start");
     }
 }
 
@@ -778,8 +783,10 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         ws.textAll(playList.toString(s));
     }
 
+    playList.isUpdated = false;
+
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
-    ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
+    //ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     if (startNow) {
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
@@ -822,10 +829,8 @@ void loop() {
     ws.cleanupClients();
 
     if (endCurrentSong) {
-        //auto vol = audio.getVolume();
         audio.stopSong();
         endCurrentSong = false;
-        //audio.setVolume(vol);
     }
 
     if (newUrl.waiting) {
