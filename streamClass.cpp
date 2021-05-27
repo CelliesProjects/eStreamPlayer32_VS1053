@@ -124,12 +124,43 @@ bool streamClass::connecttohost(const String& url) {
 
                 if (_http->header(CONTENT_TYPE).equals("audio/mpeg"))
                     _currentMimetype = MP3;
+
                 //else if (_http->header(CONTENT_TYPE).equals("audio/ogg"))
                 //    _currentMimetype = OGG;
+
                 else if (_http->header(CONTENT_TYPE).equals("audio/wav"))
                     _currentMimetype = WAV;
-                else if (_http->header(CONTENT_TYPE).equals("audio/aac"))
+
+                else if (_http->header(CONTENT_TYPE).startsWith("audio/aac"))
                     _currentMimetype = AAC;
+
+                else if (_http->header(CONTENT_TYPE).startsWith("audio/x-scpls") ||
+                         _http->header(CONTENT_TYPE).equals("audio/x-mpegurl") ||
+                         _http->header(CONTENT_TYPE).equals("application/pls+xml") ||
+                         _http->header(CONTENT_TYPE).equals("application/vnd.apple.mpegurl")) {
+                    ESP_LOGW(TAG, "url is a playlist");
+
+                    const String payload = _http->getString();
+                    ESP_LOGD(TAG, "playlist file contents: %s", payload.c_str());
+                    auto index = payload.indexOf("http");
+
+                    if (-1 == index) {
+                        ESP_LOGW(TAG, "no url found in file");
+                        stopSong();
+                        return false;
+                    }
+
+                    String newUrl;
+                    while (payload.charAt(index) != '\n' && index < payload.length()) {
+                        newUrl.concat(payload.charAt(index));
+                        index++;
+                    }
+                    stopSong();
+                    newUrl.trim();
+
+                    ESP_LOGW(TAG, "reconnecting to first url: %s", newUrl.c_str());
+                    return connecttohost(newUrl);
+                }
                 else {
                     ESP_LOGE(TAG, "closing - unsupported mimetype %s", _http->header(CONTENT_TYPE).c_str());
                     stopSong();
