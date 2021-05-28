@@ -14,6 +14,7 @@
 
 extern void audio_showstation(const char*) __attribute__((weak));
 extern void audio_eof_stream(const char*) __attribute__((weak));
+extern void audio_showstreamtitle(const char*) __attribute__((weak));
 
 class streamClass {
     private:

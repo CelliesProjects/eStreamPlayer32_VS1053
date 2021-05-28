@@ -8,6 +8,8 @@ static String _user;
 static String _pwd;
 static bool _bufferFilled = false;
 static uint8_t _volume = VS1053_INITIALVOLUME;
+static int32_t _metaint = 0;
+static int32_t _blockPos = 0; /* position within music data block */
 
 static enum mimetype_t {
     MP3,
@@ -94,7 +96,7 @@ bool streamClass::connecttohost(const String& url) {
     }
 
     // add request headers
-    _http->addHeader("Icy-MetaData", "0"); /* set to 0 to prevent glitches */
+    _http->addHeader("Icy-MetaData", "1"); /* set to 0 to prevent glitches */
 
     if (_startrange)
         _http->addHeader("Range", " bytes=" + String(_startrange) + "-");
@@ -105,8 +107,9 @@ bool streamClass::connecttohost(const String& url) {
     //prepare for response headers
     const char* CONTENT_TYPE = "Content-Type";
     const char* ICY_NAME = "icy-name";
+    const char* ICY_METAINT = "icy-metaint";
 
-    const char* header[] = {CONTENT_TYPE, ICY_NAME};
+    const char* header[] = {CONTENT_TYPE, ICY_NAME, ICY_METAINT};
     _http->collectHeaders(header, sizeof(header) / sizeof(char*));
 
     _http->setConnectTimeout(url.startsWith("https") ? CONNECT_TIMEOUT_MS_SSL : CONNECT_TIMEOUT_MS);
@@ -174,11 +177,12 @@ bool streamClass::connecttohost(const String& url) {
                     audio_showstation(_http->header(ICY_NAME).c_str());
 
                 _remainingBytes = _http->getSize();  // -1 when Server sends no Content-Length header
-                _vs1053->startSong();
+                _metaint = _http->header(ICY_METAINT).toInt();
                 _url = url;
                 _user.clear();
                 _pwd.clear();
                 _startrange = 0;
+                _vs1053->startSong();
                 return true;
             }
         default :
@@ -232,11 +236,59 @@ void streamClass::loop() {
 
         while (_vs1053->data_request() && stream->available()) {
             const size_t size = stream->available();
+
+            const auto VS1053_PACKETSIZE = 32;
+
+            static uint8_t buff[VS1053_PACKETSIZE];
+
             if (size) {
-                static uint8_t buff[32];
-                const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-                if (_remainingBytes > 0) _remainingBytes -= c;
-                _vs1053->playChunk(buff, c);
+                if (!_metaint) {
+                    const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+                    if (_remainingBytes > 0) _remainingBytes -= c;
+                    _vs1053->playChunk(buff, c);
+                } else {
+                    if (_blockPos > _metaint - VS1053_PACKETSIZE) {
+                        const int32_t bytesToRead = _metaint - _blockPos;
+                        const int c = stream->readBytes(buff, bytesToRead);
+                        if (_remainingBytes > 0) _remainingBytes -= c;
+                        _vs1053->playChunk(buff, c);
+                        //_blockPos += c;
+
+                        ESP_LOGD(TAG, "blockpos should be %i and is %i", _metaint, _blockPos + c);
+
+                        /* calculate the metadata length */
+                        const int32_t metaLength = stream->read() * 16;
+                        if (_remainingBytes > 0) _remainingBytes--;
+
+                        ESP_LOGD(TAG, "meta length = %i", metaLength);
+
+                        if (metaLength) {
+                            while (stream->available() < metaLength) delay(1);
+                            String data;
+                            for (int i = 0; i < metaLength; i++) {
+                                data.concat((char)stream->read());
+                                if (_remainingBytes > 0) _remainingBytes--;
+                            }
+
+                            ESP_LOGD(TAG, "meta: %s", data.c_str());
+                            if (audio_showstreamtitle && data.startsWith("StreamTitle")) {
+                                int32_t pos = data.indexOf("'") + 1;
+                                String streamtitle;
+                                while (data.charAt(pos) != '\'') {
+                                    streamtitle.concat(data.charAt(pos));
+                                    pos++;
+                                }
+                                if (!streamtitle.equals("")) audio_showstreamtitle(streamtitle.c_str());
+                            }
+                        }
+                        _blockPos = 0;
+                    } else {
+                        const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+                        if (_remainingBytes > 0) _remainingBytes -= c;
+                        _vs1053->playChunk(buff, c);
+                        _blockPos += c;
+                    }
+                }
             }
         }
 
@@ -262,6 +314,7 @@ void streamClass::stopSong() {
                 stream->stop();
                 stream->flush();
             }
+            _blockPos = 0;
             _http->end();
             _bufferFilled = false;
             _currentMimetype = UNKNOWN;
