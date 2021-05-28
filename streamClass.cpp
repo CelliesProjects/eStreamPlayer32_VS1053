@@ -86,23 +86,21 @@ bool streamClass::connecttohost(const String& url) {
         String escapedUrl = url;
         escapedUrl.replace(" ", "%20");
         ESP_LOGD(TAG, "connecting to %s", url.c_str());
-        if (!_http->begin(escapedUrl))
+        if (!_http->begin(escapedUrl)) {
+            ESP_LOGE(TAG, "could not connect to %s", url.c_str());
+            stopSong();
             return false;
+        }
     }
 
     // add request headers
-    _http->addHeader("Icy-MetaData", "0");
+    _http->addHeader("Icy-MetaData", "0"); /* set to 0 to prevent glitches */
 
-    if (_startrange) {
+    if (_startrange)
         _http->addHeader("Range", " bytes=" + String(_startrange) + "-");
-        _startrange = 0;
-    }
 
-    if (_user || _pwd) {
+    if (_user || _pwd)
         _http->setAuthorization(_user.c_str(), _pwd.c_str());
-        _user.clear();
-        _pwd.clear();
-    }
 
     //prepare for response headers
     const char* CONTENT_TYPE = "Content-Type";
@@ -122,28 +120,19 @@ bool streamClass::connecttohost(const String& url) {
             {
                 ESP_LOGD(TAG, "connected to %s", url.c_str());
 
-                if (_http->header(CONTENT_TYPE).equals("audio/mpeg"))
-                    _currentMimetype = MP3;
-
-                //else if (_http->header(CONTENT_TYPE).equals("audio/ogg"))
-                //    _currentMimetype = OGG;
-
-                else if (_http->header(CONTENT_TYPE).equals("audio/wav"))
-                    _currentMimetype = WAV;
-
-                else if (_http->header(CONTENT_TYPE).startsWith("audio/aac"))
-                    _currentMimetype = AAC;
-
-                else if (_http->header(CONTENT_TYPE).startsWith("audio/x-scpls") ||
-                         _http->header(CONTENT_TYPE).equals("audio/x-mpegurl") ||
-                         _http->header(CONTENT_TYPE).equals("application/pls+xml") ||
-                         _http->header(CONTENT_TYPE).equals("application/vnd.apple.mpegurl")) {
+                /* check if we opened a playlist and try to parse it */
+                if (_http->header(CONTENT_TYPE).startsWith("audio/x-scpls") ||
+                        _http->header(CONTENT_TYPE).equals("audio/x-mpegurl") ||
+                        _http->header(CONTENT_TYPE).equals("application/x-mpegurl") ||
+                        _http->header(CONTENT_TYPE).equals("application/pls+xml") ||
+                        _http->header(CONTENT_TYPE).equals("application/vnd.apple.mpegurl")) {
                     ESP_LOGW(TAG, "url is a playlist");
 
                     const String payload = _http->getString();
-                    ESP_LOGD(TAG, "playlist file contents: %s", payload.c_str());
-                    auto index = payload.indexOf("http");
 
+                    ESP_LOGD(TAG, "payload: %s", payload.c_str());
+
+                    auto index = payload.indexOf("http");
                     if (-1 == index) {
                         ESP_LOGW(TAG, "no url found in file");
                         stopSong();
@@ -155,12 +144,26 @@ bool streamClass::connecttohost(const String& url) {
                         newUrl.concat(payload.charAt(index));
                         index++;
                     }
-                    stopSong();
                     newUrl.trim();
 
-                    ESP_LOGW(TAG, "reconnecting to first url: %s", newUrl.c_str());
+                    ESP_LOGW(TAG, "file parsed - reconnecting to: %s", newUrl.c_str());
+
+                    stopSong();
                     return connecttohost(newUrl);
                 }
+
+                else if (_http->header(CONTENT_TYPE).equals("audio/mpeg"))
+                    _currentMimetype = MP3;
+
+                //else if (_http->header(CONTENT_TYPE).equals("audio/ogg"))
+                //    _currentMimetype = OGG;
+
+                else if (_http->header(CONTENT_TYPE).equals("audio/wav"))
+                    _currentMimetype = WAV;
+
+                else if (_http->header(CONTENT_TYPE).startsWith("audio/aac"))
+                    _currentMimetype = AAC;
+
                 else {
                     ESP_LOGE(TAG, "closing - unsupported mimetype %s", _http->header(CONTENT_TYPE).c_str());
                     stopSong();
@@ -173,6 +176,9 @@ bool streamClass::connecttohost(const String& url) {
                 _remainingBytes = _http->getSize();  // -1 when Server sends no Content-Length header
                 _vs1053->startSong();
                 _url = url;
+                _user.clear();
+                _pwd.clear();
+                _startrange = 0;
                 return true;
             }
         default :
@@ -210,12 +216,14 @@ void streamClass::loop() {
     if (!stream->available()) return;
 
     {
-        const auto HTTP_BUFFERSIZE = 1024 * 6;  /* on song start - try to wait for this amount of bytes in the buffer */
-        const auto MAX_RETRIES = 10;            /* but just start playing after MAX_RETRIES regardless of stored amount*/
+        const size_t HTTP_BUFFERSIZE = 1024 * 6;  /* on stream start - try to wait for this amount of bytes in the buffer */
+        const auto MAX_RETRIES = 10;              /* but just start playing after MAX_RETRIES regardless of stored amount*/
         static auto count = 0;
-        if ((!_bufferFilled && count++ < MAX_RETRIES) && stream->available() < std::min((size_t)HTTP_BUFFERSIZE, _remainingBytes))
-            return;
 
+        //if (!_bufferFilled) ESP_LOGI(TAG, "Pass: %i available: %i", count, stream->available());
+
+        if ((!_bufferFilled && count++ < MAX_RETRIES) && stream->available() < std::min(HTTP_BUFFERSIZE, _remainingBytes))
+            return;
         _bufferFilled = true;
         count = 0;
     }
@@ -246,6 +254,7 @@ bool streamClass::isRunning() {
 }
 
 void streamClass::stopSong() {
+    if (_vs1053) _vs1053->stopSong();
     if (_http) {
         if (_http->connected()) {
             {
@@ -253,9 +262,8 @@ void streamClass::stopSong() {
                 stream->stop();
                 stream->flush();
             }
-            _bufferFilled = false;
             _http->end();
-            _vs1053->stopSong();
+            _bufferFilled = false;
             _currentMimetype = UNKNOWN;
             _url.clear();
             ESP_LOGD(TAG, "closed stream");
