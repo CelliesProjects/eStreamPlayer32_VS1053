@@ -246,17 +246,14 @@ void streamClass::loop() {
                     const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
                     if (_remainingBytes > 0) _remainingBytes -= c;
                     _vs1053->playChunk(buff, c);
-                } else {
+                }
+                else {
                     if (_blockPos > _metaint - VS1053_PACKETSIZE) {
                         const int32_t bytesToRead = _metaint - _blockPos;
                         const int c = stream->readBytes(buff, bytesToRead);
                         if (_remainingBytes > 0) _remainingBytes -= c;
                         _vs1053->playChunk(buff, c);
-                        //_blockPos += c;
 
-                        ESP_LOGD(TAG, "blockpos should be %i and is %i", _metaint, _blockPos + c);
-
-                        /* calculate the metadata length */
                         const int32_t metaLength = stream->read() * 16;
                         if (_remainingBytes > 0) _remainingBytes--;
 
@@ -270,19 +267,24 @@ void streamClass::loop() {
                                 if (_remainingBytes > 0) _remainingBytes--;
                             }
 
-                            ESP_LOGD(TAG, "meta: %s", data.c_str());
+                            //if (!data.equals("")) ESP_LOGI(TAG, "meta: %s", data.c_str());
+
                             if (audio_showstreamtitle && data.startsWith("StreamTitle")) {
-                                int32_t pos = data.indexOf("'") + 1;
                                 String streamtitle;
-                                while (data.charAt(pos) != '\'') {
-                                    streamtitle.concat(data.charAt(pos));
+                                int32_t pos = data.indexOf("'");
+                                if (pos != -1) {
                                     pos++;
+                                    while (data.charAt(pos) != '\'' && pos < data.length()) {
+                                        streamtitle.concat(data.charAt(pos));
+                                        pos++;
+                                    }
+                                    if (!streamtitle.equals("")) audio_showstreamtitle(streamtitle.c_str());
                                 }
-                                if (!streamtitle.equals("")) audio_showstreamtitle(streamtitle.c_str());
                             }
                         }
                         _blockPos = 0;
-                    } else {
+                    }
+                    else {
                         const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
                         if (_remainingBytes > 0) _remainingBytes -= c;
                         _vs1053->playChunk(buff, c);
