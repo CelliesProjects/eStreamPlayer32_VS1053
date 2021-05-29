@@ -249,10 +249,11 @@ void streamClass::loop() {
                 }
                 else {
                     if (_blockPos > _metaint - VS1053_PACKETSIZE) {
-                        const int32_t bytesToRead = _metaint - _blockPos;
-                        const int c = stream->readBytes(buff, bytesToRead);
+                        const int c = stream->readBytes(buff, _metaint - _blockPos);
                         if (_remainingBytes > 0) _remainingBytes -= c;
                         _vs1053->playChunk(buff, c);
+
+                        _blockPos = 0;
 
                         const int32_t metaLength = stream->read() * 16;
                         if (_remainingBytes > 0) _remainingBytes--;
@@ -282,7 +283,6 @@ void streamClass::loop() {
                                 }
                             }
                         }
-                        _blockPos = 0;
                     }
                     else {
                         const int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
