@@ -1,22 +1,24 @@
-#  eStreamPlayer32_VS1053
+# eStreamPlayer32_VS1053
 
-An web-based esp32 program to play webradio and mp3/aac/wav files from a lamp or llmp server.
+A web-based esp32 program to play webradio and mp3/aac/wav files from a lamp or llmp server.
+Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board.
 
--  Control eStreamPlayer with your phone, pc or tablet.
--  Play your local files.
--  Play preset radio stations.
--  Add new urls and save them to favorites.
+### What does it do?
 
-Sound output comes from a VS1053 mp3/aac/ogg/wav decoder breakout board.
+-  play preset radio stations.
+-  you can add new urls and save these to favorites.
+-  play your local files. (See limitation #2)
+-  you can control the music player with your phone, pc or tablet.
 
-###  Limitations
+
+### Limitations
 
 1.  Currently ogg playback is not supported.
-2.  eStreamPlayer is written for playback over http.<br>The esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library. <br>**This is totally insecure and should only be used on a LAN!**
+2.  eStreamPlayer is written for playback over http(s). What this means is that you will need a (lamp or llmp) webserver to play back your files.<br>This is because the esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library. <br>**This is totally insecure and should only be used on a LAN!**
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
-###  Web-interface screenshots
+### Webinterface screenshots
 
 #### File info overlay
 
@@ -38,23 +40,23 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/releases/latest) to compile.
 
-1.  Download and install the [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) libraries.
+1.  Download and install [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) in the Arduino libraries folder.
 2.  Download and unzip the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32_VS1053/releases/latest).
 3.  Copy the php script (found in the `copy to server` folder) to your music folder on the server.
-4.  Open eStreamPlayer in the Arduino IDE.
+4.  Open `eStreamPlayer_vs1053.ino` in the Arduino IDE.
 5.  Select `Tools->Partition Scheme->No OTA(2MB APP/2MB FATFS`).
 <br>If your board does not have that option you can select `ESP32 Dev Module` in `Tools->Board`.
-6.  Open `system_setup.h` and set your wifi credentials and set `SCRIPT_URL` to the php script location.
+6.  Open `system_setup.h` and set your wifi credentials and set `SCRIPT_URL` to the php script location set in step #3.<br>Set up `LIBRARY_USER` and `LIBRARY_PWD` if your local library requires login.
 7.  Flash the sketch to your esp32. Set `Tools->Core Debug Level->Info` before you flash so you can grab the ip address from the serial port.
 8.  On first boot or after a flash erase the fatfs has to be formatted. This will take a couple of seconds.
-<br>You can monitor the boot progress on the serial port.
+<br>You can monitor the boot/formatting progress on the serial port.
 <br>Flashing an update will not erase the fatfs data.
 <br>**Note:** Take care to select the same partition table when updating otherwise the partition will be formatted.
 9.  Browse to the ip address shown on the serial port.
 
 ### Software needed
 
--  [vs1053 library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) licensed under [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
+-  [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) licensed under [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
 -  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (LGPL-3.0 License)
 -  A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack to serve local files.
