@@ -3,14 +3,13 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 
 #include "streamClass.h"
-#include "percentEncode.h"
 #include "system_setup.h"
 #include "playList.h"
 #include "index_htm_gz.h"
 #include "icons.h"
 
 const char* VERSION_STRING {
-    "eStreamPlayer32_VS1053 v0.0.1"
+    "eStreamPlayer32 for VS1053 v0.0.1"
 };
 
 bool inputReceived = false;
@@ -101,7 +100,7 @@ void audio_showstation(const char *info) {
 
 static char streamtitle[200]; // These are kept global to update new clients in loop()
 void audio_showstreamtitle(const char *info) {
-    snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", percentEncode(info).c_str());
+    snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
     ESP_LOGD(TAG, "streamtitle: %s", streamtitle);
     ws.printfAll(streamtitle);
 }
@@ -651,8 +650,6 @@ String& favoritesToString(String& s) {
 }
 
 bool startPlaylistItem(const playListItem& item) {
-    const auto vol = audio.getVolume();
-    audio.setVolume(0);
     audio.stopSong();
     switch (item.type) {
         case HTTP_FILE :
@@ -684,7 +681,6 @@ bool startPlaylistItem(const playListItem& item) {
             break;
         default : ESP_LOGE(TAG, "Unhandled item.type.");
     }
-    audio.setVolume(vol);
     return audio.isRunning();
 }
 
@@ -825,7 +821,13 @@ void startCurrentItem() {
 
 void loop() {
     audio.loop();
-
+/*
+    static int32_t lastFreeRAM = 0;
+    if (lastFreeRAM != ESP.getFreeHeap()) {
+        lastFreeRAM = ESP.getFreeHeap();
+        ESP_LOGI(TAG, "free ram: %i", lastFreeRAM);
+    }
+*/
     ws.cleanupClients();
 
     if (endCurrentSong) {
