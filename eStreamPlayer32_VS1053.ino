@@ -703,17 +703,14 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
                     return false;
                 }
                 ESP_LOGD(TAG, "saving stream: %s -> %s", filename.c_str(), item.url.c_str());
-                audio.loop();
                 File file = FFat.open("/" + filename, FILE_WRITE);
                 if (!file) {
                     ESP_LOGE(TAG, "failed to open file for writing");
                     return false;
                 }
-                audio.loop();
                 bool result = file.print(item.url.c_str());
-                audio.loop();
                 file.close();
-                ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename);
+                ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename.c_str());
                 return result;
             }
             break;
