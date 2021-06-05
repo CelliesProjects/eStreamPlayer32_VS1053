@@ -3,6 +3,7 @@
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 
 #include "streamClass.h"
+#include "percentEncode.h"
 #include "system_setup.h"
 #include "playList.h"
 #include "index_htm_gz.h"
@@ -100,7 +101,7 @@ void audio_showstation(const char *info) {
 
 static char streamtitle[200]; // These are kept global to update new clients in loop()
 void audio_showstreamtitle(const char *info) {
-    snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", info);
+    snprintf(streamtitle, sizeof(streamtitle), "streamtitle\n%s", percentEncode(info).c_str());
     ESP_LOGD(TAG, "streamtitle: %s", streamtitle);
     ws.printfAll(streamtitle);
 }
