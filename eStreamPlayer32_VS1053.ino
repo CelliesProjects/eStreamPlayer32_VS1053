@@ -179,6 +179,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
                     if (!itemsAdded) return;
 
+                    {
+                        String s;
+                        ws.textAll(playList.toString(s));
+                    }
+                    updateHighlightedItemOnClients();
+                    playList.isUpdated = false;
+
                     if (startnow) {
                         currentItem = previousSize - 1;
                         playerStatus = PLAYING;
@@ -223,13 +230,21 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     const uint32_t index = atoi(pch);
                     if (index == currentItem) {
                         playList.remove(index);
+
+                        if (playList.isUpdated )
+                        {
+                            String s;
+                            ws.textAll(playList.toString(s));
+                        }
+                        playList.isUpdated = false;
+                        updateHighlightedItemOnClients();
+
                         endCurrentSong = true;
                         if (!playList.size()) {
                             playListHasEnded();
                             return;
                         }
                         currentItem--;
-                        inputReceived = true;
                         return;
                     }
                     if (index < playList.size()) {
@@ -341,7 +356,15 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
                         playList.add({HTTP_PRESET, "", "", index});
 
-                        if (!playList.isUpdated) return;
+                        if (playList.isUpdated) {
+                            {
+                                String s;
+                                ws.textAll(playList.toString(s));
+                            }
+                            updateHighlightedItemOnClients();
+                            playList.isUpdated = false;
+                        } else
+                            return;
 
                         ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
                         client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
@@ -425,6 +448,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
 
                         if (!playList.isUpdated) return;
+                        else
+                        {
+                            String s;
+                            ws.textAll(playList.toString(s));
+                            updateHighlightedItemOnClients();
+                        }
+                        playList.isUpdated = false;
 
                         if (startnow) {
                             currentItem = previousSize - 1;
@@ -731,13 +761,19 @@ void handlePastedUrl() {
         return;
     }
 
-    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
     const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
     playList.add(item);
+
+    if (!playList.isUpdated) return;
+
+    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+
     {
-        String s;
-        ws.textAll(playList.toString(s));
+        String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
+        ws.text(newUrl.clientId, buffer.c_str());
+        ws.textAll(playList.toString(buffer));
     }
+
     currentItem = playList.size() - 1;
     updateHighlightedItemOnClients();
 
@@ -776,11 +812,11 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         String s;
         ws.textAll(playList.toString(s));
     }
-
+    updateHighlightedItemOnClients();
     playList.isUpdated = false;
 
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
-    //ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
+    ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     if (startNow) {
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
@@ -819,13 +855,13 @@ void startCurrentItem() {
 
 void loop() {
     audio.loop();
-/*
-    static int32_t lastFreeRAM = 0;
-    if (lastFreeRAM != ESP.getFreeHeap()) {
-        lastFreeRAM = ESP.getFreeHeap();
-        ESP_LOGI(TAG, "free ram: %i", lastFreeRAM);
-    }
-*/
+    /*
+        static int32_t lastFreeRAM = 0;
+        if (lastFreeRAM != ESP.getFreeHeap()) {
+            lastFreeRAM = ESP.getFreeHeap();
+            ESP_LOGI(TAG, "free ram: %i", lastFreeRAM);
+        }
+    */
     ws.cleanupClients();
 
     if (endCurrentSong) {
@@ -859,4 +895,5 @@ void loop() {
         updateHighlightedItemOnClients();
         playList.isUpdated = false;
     }
+    delay(4);
 }
