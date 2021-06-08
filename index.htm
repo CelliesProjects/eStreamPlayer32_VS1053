@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.103";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -251,7 +251,8 @@ const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
 var libraryURL = "";
 var libraryUser = "";
 var libraryPwd = "";
-var currentpath='/';
+var currentpath = '/';
+var currentItem = -1;
 var scrollPos=[]; //array to keep track of nested folders
 
 function updateLocationBar(){
@@ -260,9 +261,7 @@ function updateLocationBar(){
 
 function updateLibraryFolder(folder,oldfolder,restorescroll){
   $.get(libraryURL + "?folder=" + encodeURIComponent(folder),
-  {
-    headers: {'Authorization': 'Basic ' + btoa(libraryUser + ":" + libraryPwd)}
-  })
+  {headers: {'Authorization': 'Basic ' + btoa(libraryUser + ":" + libraryPwd)}})
   .done(function(data) {
     $('#LIBRARY').html(data).scrollTop(0);
     if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
@@ -313,12 +312,14 @@ function refreshAllTabs() {
   $.get(http_host + "/scripturl")
   .done(function(data){
     const libraryData = data.split("\n");
-    libraryURL = libraryData[0];
+    libraryURL = libraryData[0].trim();
     if (libraryData.length > 2) {
-      libraryUser = libraryData[1];
-      libraryPwd = libraryData[2];
+      libraryUser = libraryData[1].trim();
+      libraryPwd = libraryData[2].trim();
     }
     console.log('script url: ' + libraryURL);
+    console.log('user: ' + libraryUser);
+    console.log('password: ' + libraryPwd);
     scrollPos.push($('#LIBRARY').scrollTop());
     updateLibraryFolder(currentpath, '', true);
 
@@ -341,7 +342,8 @@ $(document).ready(function(){
     switch(command[0]){
       case "currentPLitem":
         $('.plitem').css("background-color","");
-        if(-1 == command[1]){
+        currentItem = parseInt(command[1]);
+        if(-1 == currentItem){
           $('#playerstatus, #showstation').html("Nothing playing");
         }else{
           $('.plitem').eq(command[1]).css("background-color","cadetblue");
@@ -527,6 +529,7 @@ $(document).ready(function(){
   });
 
   $('body').on('click','.plitem',function(){
+    $(this).css("background","lightgrey");
     ws.send("playitem\n" + ($(this).index('.plitem')));
   });
 
@@ -544,11 +547,17 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#previousbutton',function(){
-    ws.send("previous\n");
+    if (currentItem > 0) {
+      $('.plitem').eq(currentItem - 1).css("background","lightgrey");
+      ws.send("previous\n");
+    };
   });
 
   $('body').on('click','#nextbutton',function(){
-    ws.send("next\n");
+    if (currentItem < $('.plitem').length - 1) {
+      $('.plitem').eq(currentItem + 1).css("background","lightgrey");
+      ws.send("next\n");
+    }    
   });
 
   $('body').on('click','#clearbutton',function(){
