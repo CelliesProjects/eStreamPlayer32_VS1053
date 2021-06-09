@@ -40,7 +40,7 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/releases/latest) to compile.
 
-1.  Download and install [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) in the Arduino libraries folder.
+1.  Download and install [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [ESP32_VS1053_Stream](https://github.com/CelliesProjects/ESP32_VS1053_Stream), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) in the Arduino libraries folder.
 2.  Download and unzip the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32_VS1053/releases/latest).
 3.  Copy the php script (found in the `copy to server` folder) to your music folder on the server.
 4.  Open `eStreamPlayer_vs1053.ino` in the Arduino IDE.
@@ -57,13 +57,12 @@ Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/r
 ### Software needed
 
 -  [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) licensed under [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
+-  [ESP32_VS1053_Stream](https://github.com/CelliesProjects/ESP32_VS1053_Stream) No license yet.
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
 -  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (LGPL-3.0 License)
 -  A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack to serve local files.
  Apache2 and lighttpd were tested and should work. The php script should be fairly version agnostic.
-<br>Note that all files and streams files should have a valid mime-type header.
-<br>mp3 -> `Content-Type: audio/mpeg`
-<br>aac -> `Content-Type: audio/aac`
+
 
 ### Libraries used in the web interface
 
