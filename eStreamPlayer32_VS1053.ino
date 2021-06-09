@@ -1,8 +1,9 @@
 #include <FFat.h>
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
+#include <VS1053.h>                                     /* https://github.com/baldram/ESP_VS1053_Library */
+#include <ESP32_VS1053_Stream.h>                        /* https://github.com/CelliesProjects/eStreamPlayer32_VS1053 */
 
-#include "streamClass.h"
 #include "percentEncode.h"
 #include "system_setup.h"
 #include "playList.h"
@@ -41,7 +42,7 @@ playList_t playList;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-streamClass audio;
+ESP32_VS1053_Stream audio;
 
 struct {
     bool waiting{false};
