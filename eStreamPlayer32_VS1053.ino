@@ -2,7 +2,7 @@
 #include <AsyncTCP.h>                                   /* https://github.com/me-no-dev/AsyncTCP */
 #include <ESPAsyncWebServer.h>                          /* https://github.com/me-no-dev/ESPAsyncWebServer */
 #include <VS1053.h>                                     /* https://github.com/baldram/ESP_VS1053_Library */
-#include <ESP32_VS1053_Stream.h>                        /* https://github.com/CelliesProjects/eStreamPlayer32_VS1053 */
+#include <ESP32_VS1053_Stream.h>                        /* https://github.com/CelliesProjects/ESP32_VS1053_Stream */
 
 #include "percentEncode.h"
 #include "system_setup.h"
