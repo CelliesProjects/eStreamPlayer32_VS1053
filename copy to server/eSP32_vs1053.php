@@ -24,8 +24,7 @@ if(isset($_GET["folder"])){
     echo '<div id="uplink">'.UPFOLDER_ICON.'</div>';
   }
 
-  //$validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv],[Oo][Gg][Gg]}";
-  $validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv],[Pp][Ll][Ss],[Mm]3[Uu]}";
+  $validFiles="*.{[Mm][Pp]3,[Aa][Aa][Cc],[Ww][Aa][Vv],[Oo][Gg][Gg],[Pp][Ll][Ss],[Mm]3[Uu]}";
 
   foreach(glob($path."*",GLOB_ONLYDIR)as$filename){
     echo '<div class="folderlink">';
