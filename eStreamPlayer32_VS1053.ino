@@ -896,5 +896,5 @@ void loop() {
         updateHighlightedItemOnClients();
         playList.isUpdated = false;
     }
-    delay(4);
+    delay(1);
 }
