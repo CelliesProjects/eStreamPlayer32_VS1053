@@ -3,18 +3,21 @@
 A web-based esp32 program to play webradio and mp3/aac/wav files from a lamp or llmp server.
 Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board.
 
+Supports http, https (insecure mode) and chunked streams.
+
+Plays mp3, ogg, aac, aac+ and wav streams.
+
 ### What does it do?
 
--  play preset radio stations.
--  you can add new urls and save these to favorites.
--  play your local files. (See limitation #2)
--  you can control the music player with your phone, pc or tablet.
+-  play preset radio stations
+-  play your local files
+-  you can play new urls and save these to favorites
+-  you can control the music player with your phone, pc or tablet
 
 
 ### Limitations
 
-1.  Currently ogg playback is not supported.
-2.  eStreamPlayer is written for playback over http(s). What this means is that you will need a (lamp or llmp) webserver to play back your files.<br>This is because the esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library. <br>**This is totally insecure and should only be used on a LAN!**
+eStreamPlayer is written for playback over http(s). What this means is that you will need a (lamp or llmp) webserver to play back your local files.<br>This is because the esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library.<br>**This is totally insecure and should only be used on a LAN!**
 
 But if you don't have a local music server you can still use eStreamPlayer to tune in to web radio stations and add your own radio stations to presets and favorites.
 
