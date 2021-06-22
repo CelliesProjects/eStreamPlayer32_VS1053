@@ -180,13 +180,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
                     if (!itemsAdded) return;
 
-                    {
-                        String s;
-                        ws.textAll(playList.toString(s));
-                    }
-                    updateHighlightedItemOnClients();
-                    playList.isUpdated = false;
-
                     if (startnow) {
                         currentItem = previousSize - 1;
                         playerStatus = PLAYING;
@@ -233,12 +226,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         playList.remove(index);
 
                         if (playList.isUpdated )
-                        {
-                            String s;
-                            ws.textAll(playList.toString(s));
-                        }
-                        playList.isUpdated = false;
-                        updateHighlightedItemOnClients();
+                            upDatePlaylistOnClients();
 
                         endCurrentSong = true;
                         if (!playList.size()) {
@@ -357,15 +345,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     if (index < sizeof(preset) / sizeof(source)) { // only add really existing presets to the playlist
                         playList.add({HTTP_PRESET, "", "", index});
 
-                        if (playList.isUpdated) {
-                            {
-                                String s;
-                                ws.textAll(playList.toString(s));
-                            }
-                            updateHighlightedItemOnClients();
-                            playList.isUpdated = false;
-                        } else
+                        if (!playList.isUpdated) {
+                            client->printf("%sCould not add '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
                             return;
+                        }
 
                         ESP_LOGD(TAG, "Added '%s' to playlist", preset[index].name.c_str());
                         client->printf("%sAdded '%s' to playlist", MESSAGE_HEADER, preset[index].name.c_str());
@@ -439,13 +422,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
 
                         if (!playList.isUpdated) return;
-                        else
-                        {
-                            String s;
-                            ws.textAll(playList.toString(s));
-                            updateHighlightedItemOnClients();
-                        }
-                        playList.isUpdated = false;
 
                         if (startnow) {
                             currentItem = previousSize - 1;
@@ -473,6 +449,9 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
 }
 
 void setup() {
+
+    ESP_LOGI(TAG, "\n\n\neStreamPlayer32 for VS1053 - compiled with IDF %s\n\n\n", IDF_VER);
+
     btStop();
 
     if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS)) {
@@ -482,9 +461,14 @@ void setup() {
     WiFi.begin(SSID, PSK);
     WiFi.setSleep(false);
 
+    ESP_LOGI(TAG, "Starting decoder...");
+
     SPI.begin();
 
-    audio.startDecoder(VS1053_CS, VS1053_DCS, VS1053_DREQ);
+    if (!audio.startDecoder(VS1053_CS, VS1053_DCS, VS1053_DREQ)) {
+        ESP_LOGE(TAG, "No VS1053! System halted.");
+        while (true) delay(1000); /* system is halted */;
+    }
 
     if (psramInit()) {
         ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
@@ -798,13 +782,6 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
 
     if (!playList.isUpdated) return;
 
-    {
-        String s;
-        ws.textAll(playList.toString(s));
-    }
-    updateHighlightedItemOnClients();
-    playList.isUpdated = false;
-
     ESP_LOGD(TAG, "favorite to playlist: %s -> %s", filename.c_str(), url.c_str());
     ws.printfAll("%sAdded '%s' to playlist", MESSAGE_HEADER, filename.c_str());
     if (startNow) {
@@ -843,6 +820,18 @@ void startCurrentItem() {
         ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
 
+void upDatePlaylistOnClients() {
+    {
+        String s;
+        ws.textAll(playList.toString(s));
+    }
+
+    ESP_LOGI(TAG, "playlist update: %i items - mem: %i", playList.size(), ESP.getFreeHeap());
+
+    updateHighlightedItemOnClients();
+    playList.isUpdated = false;
+}
+
 void loop() {
     audio.loop();
     /*
@@ -864,6 +853,9 @@ void loop() {
         newUrl.waiting = false;
     }
 
+    if (playList.isUpdated)
+        upDatePlaylistOnClients();
+
     if ((!audio.isRunning() || inputReceived) && playList.size() && PLAYING == playerStatus) {
         inputReceived = false;
         if (currentItem < playList.size() - 1) {
@@ -872,17 +864,5 @@ void loop() {
         }
         else
             playListHasEnded();
-    }
-
-    if (playList.isUpdated) {
-        {
-            String s;
-            ws.textAll(playList.toString(s));
-        }
-
-        ESP_LOGI(TAG, "Playlist updated. %i items. Free mem: %i", playList.size(), ESP.getFreeHeap());
-
-        updateHighlightedItemOnClients();
-        playList.isUpdated = false;
     }
 }
