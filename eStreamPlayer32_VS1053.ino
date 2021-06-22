@@ -389,62 +389,52 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             }
         } else {
             //message is comprised of multiple frames or the frame is split into multiple packets
-            static char* buffer = nullptr;
+            static String message = "";
+            static uint32_t currentUploadingClient;
+
+            if (message.equals(""))
+                currentUploadingClient = client->id();
+
+            else if (client->id() != currentUploadingClient) {
+                ESP_LOGW(TAG, "ignoring upload from client %i because client %i is currently uploading", client->id(), currentUploadingClient);
+                return;
+            }
+
             if (info->index == 0) {
                 if (info->num == 0) {
                     ESP_LOGD(TAG, "ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
                 }
-
                 ESP_LOGD(TAG, "ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
-                //allocate info->len bytes of memory
-
-                if (!buffer) {
-                    // we need at least twice the amount of free memory that is requested (buffer + playlist data)
-                    if (info->len * 2 > ESP.getFreeHeap()) {
-                        client->printf("%sout of memory", MESSAGE_HEADER);
-                        client->close();
-                        return;
-                    }
-                    buffer = new char[info->len + 1];
-                }
-                else {
-                    ESP_LOGE(TAG, "request for buffer but transfer already running. dropping client %i multi frame transfer", client->id());
-                    client->printf("%sservice currently unavailable", MESSAGE_HEADER);
-                    client->close();
-                    return;
-                }
             }
 
             ESP_LOGD(TAG, "ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
-            //move the data to the buffer
-            memcpy(buffer + info->index, data, len);
-            ESP_LOGD(TAG, "Copied %i bytes to buffer at pos %llu", len, info->index);
+
+            auto cnt = 0;
+            while (cnt < len)
+                message.concat((char)data[cnt++]);
 
             if ((info->index + len) == info->len) {
                 ESP_LOGD(TAG, "ws[%s][%u] frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
                 if (info->final) {
                     ESP_LOGD(TAG, "ws[%s][%u] %s-message end", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
 
-                    //we should have the complete message now stored in buffer
-                    buffer[info->len] = 0;
-                    ESP_LOGD(TAG, "complete multi frame request: %s", reinterpret_cast<char*>(buffer));
+                    ESP_LOGD(TAG, "complete multi frame ws message: %s", message.c_str());
 
-                    char* pch = strtok(buffer, "\n");
-                    if (!strcmp("filetoplaylist", pch) ||
-                            !strcmp("_filetoplaylist", pch)) {
+                    if (message.startsWith("filetoplaylist") ||
+                            message.startsWith("_filetoplaylist")) {
                         ESP_LOGD(TAG, "multi frame playlist");
-                        const bool startnow = (pch[0] == '_');
+                        const bool startnow = (message[0] == '_');
                         const uint32_t previousSize = playList.size();
-                        pch = strtok(NULL, "\n");
-                        while (pch) {
-                            ESP_LOGD(TAG, "argument: %s", pch);
-                            playList.add({HTTP_FILE, "", pch});
-                            pch = strtok(NULL, "\n");
+                        int pos = message.indexOf("\n") + 1;
+                        while (pos < info->len) {
+                            const String url = message.substring(pos, message.indexOf("\n", pos++));
+                            ESP_LOGD(TAG, "adding url: %s", url.c_str());
+                            playList.add({HTTP_FILE, "", url});
+                            pos += url.length();
                         }
-                        delete []buffer;
-                        buffer = nullptr;
+                        message.clear();
 
-                        ESP_LOGD(TAG, "Added %i items to playlist", playList.size() - previousSize);
+                        ESP_LOGI(TAG, "Added %i items to playlist", playList.size() - previousSize);
 
                         client->printf("%sAdded %i items to playlist", MESSAGE_HEADER, playList.size() - previousSize);
 
@@ -495,7 +485,6 @@ void setup() {
     SPI.begin();
 
     audio.startDecoder(VS1053_CS, VS1053_DCS, VS1053_DREQ);
-    audio.setVolume(VS1053_INITIALVOLUME);
 
     if (psramInit()) {
         ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
@@ -896,5 +885,4 @@ void loop() {
         updateHighlightedItemOnClients();
         playList.isUpdated = false;
     }
-    delay(1);
 }
