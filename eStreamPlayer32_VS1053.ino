@@ -450,7 +450,7 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
 
 void setup() {
 
-    ESP_LOGI(TAG, "\n\n\neStreamPlayer32 for VS1053 - compiled with IDF %s\n\n\n", IDF_VER);
+    ESP_LOGI(TAG, "\n\n\neStreamPlayer32 for VS1053 - compiled with IDF %s\n", IDF_VER);
 
     btStop();
 
@@ -531,7 +531,7 @@ void setup() {
 
     server.on("/", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_MIMETYPE, index_htm_gz, index_htm_gz_len);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, HTML_MIMETYPE, index_htm_gz, index_htm_gz_len);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         response->addHeader(CONTENT_ENCODING_HEADER, CONTENT_ENCODING_VALUE);
         request->send(response);
@@ -539,7 +539,7 @@ void setup() {
 
     server.on("/stations", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+        AsyncResponseStream* const response = request->beginResponseStream(HTML_MIMETYPE);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
             response->printf("%s\n", preset[i].name.c_str());
@@ -549,7 +549,7 @@ void setup() {
 
     server.on("/scripturl", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncResponseStream *response = request->beginResponseStream(HTML_MIMETYPE);
+        AsyncResponseStream* const response = request->beginResponseStream(HTML_MIMETYPE);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         response->println(SCRIPT_URL);
         if (!LIBRARY_USER.equals("") || !LIBRARY_PWD.equals("")) {
@@ -563,63 +563,63 @@ void setup() {
 
     server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, radioicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/playicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, playicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/libraryicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, libraryicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/favoriteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, favoriteicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/streamicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, pasteicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/deleteicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, deleteicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/addfoldericon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, addfoldericon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/emptyicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, emptyicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
 
     server.on("/starticon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
-        AsyncWebServerResponse *response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, starticon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
@@ -738,7 +738,11 @@ void handlePastedUrl() {
     const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
     playList.add(item);
 
-    if (!playList.isUpdated) return;
+    if (!playList.isUpdated) {
+        String buffer = String(MESSAGE_HEADER) + "Could not add url.";
+        ws.text(newUrl.clientId, buffer);
+        return;
+    }
 
     ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
 
@@ -812,7 +816,7 @@ void startCurrentItem() {
     playListItem item;
     playList.get(currentItem, item);
 
-    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
+    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem + 1);
 
     updateHighlightedItemOnClients();
 
