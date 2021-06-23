@@ -450,7 +450,11 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
 
 void setup() {
 
-    ESP_LOGI(TAG, "\n\n\neStreamPlayer32 for VS1053 - compiled with IDF %s\n", IDF_VER);
+    ESP_LOGI(TAG, "eStreamPlayer32 for VS1053");
+
+#ifdef IDF_VER
+    ESP_LOGI(TAG, "compiled with IDF %s", IDF_VER); /* only available since 2.0.0 */
+#endif
 
     btStop();
 
@@ -635,9 +639,9 @@ void setup() {
     ESP_LOGI(TAG, "Ready to rock!");
 }
 
-String& favoritesToString(String& s) {
+const String& favoritesToString(String& s) {
     File root = FFat.open("/");
-    s = "";
+    s.clear();
     if (!root || !root.isDirectory()) {
         ESP_LOGE(TAG, "ERROR - root folder problem");
         return s;
@@ -712,7 +716,7 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
                     ESP_LOGE(TAG, "failed to open file for writing");
                     return false;
                 }
-                bool result = file.print(item.url.c_str());
+                const bool result = file.print(item.url.c_str());
                 file.close();
                 ESP_LOGD(TAG, "%s writing to '%s'", result ? "ok" : "WARNING - failed", filename.c_str());
                 return result;
@@ -739,7 +743,7 @@ void handlePastedUrl() {
     playList.add(item);
 
     if (!playList.isUpdated) {
-        String buffer = String(MESSAGE_HEADER) + "Could not add url.";
+        const String buffer = String(MESSAGE_HEADER) + "Could not add url.";
         ws.text(newUrl.clientId, buffer);
         return;
     }
