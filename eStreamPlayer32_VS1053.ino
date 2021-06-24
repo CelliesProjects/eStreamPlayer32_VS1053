@@ -379,7 +379,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                 currentUploadingClient = client->id();
 
             else if (client->id() != currentUploadingClient) {
-                ESP_LOGW(TAG, "ignoring upload from client %i because client %i is currently uploading", client->id(), currentUploadingClient);
+                ESP_LOGW(TAG, "ignoring upload part %i from client %i because client %i is currently uploading", info->num, client->id(), currentUploadingClient);
                 return;
             }
 
@@ -410,10 +410,10 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         const uint32_t previousSize = playList.size();
                         int pos = message.indexOf("\n") + 1;
                         while (pos < info->len) {
-                            const String url = message.substring(pos, message.indexOf("\n", pos++));
-                            ESP_LOGD(TAG, "adding url: %s", url.c_str());
+                            const String url = message.substring(pos, message.indexOf("\n", pos));
+                            ESP_LOGI(TAG, "adding url: %s", url.c_str());
                             playList.add({HTTP_FILE, "", url});
-                            pos += url.length();
+                            pos += url.length() + 1;
                         }
                         message.clear();
 
@@ -650,7 +650,7 @@ const String& favoritesToString(String& s) {
     File file = root.openNextFile();
     while (file) {
         if (!file.isDirectory()) {
-            s.concat(file.name());
+            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
             s.concat("\n");
         }
         file = root.openNextFile();
@@ -834,7 +834,9 @@ void upDatePlaylistOnClients() {
         ws.textAll(playList.toString(s));
     }
 
-    ESP_LOGI(TAG, "playlist update: %i items - mem: %i", playList.size(), ESP.getFreeHeap());
+    ESP_LOGD(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
+
+    ESP_LOGD(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
 
     updateHighlightedItemOnClients();
     playList.isUpdated = false;
