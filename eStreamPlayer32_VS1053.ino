@@ -403,15 +403,20 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
                     ESP_LOGD(TAG, "complete multi frame ws message: %s", message.c_str());
 
-                    if (message.startsWith("filetoplaylist") ||
-                            message.startsWith("_filetoplaylist")) {
+                    if (message.startsWith("filetoplaylist") || message.startsWith("_filetoplaylist")) {
+
+                        int pos = message.indexOf("\n");
+
+                        if (-1 == pos) return;
+
                         ESP_LOGD(TAG, "multi frame playlist");
                         const bool startnow = (message[0] == '_');
                         const uint32_t previousSize = playList.size();
-                        int pos = message.indexOf("\n") + 1;
+
+                        pos++;
                         while (pos < info->len) {
                             const String url = message.substring(pos, message.indexOf("\n", pos));
-                            ESP_LOGI(TAG, "adding url: %s", url.c_str());
+                            ESP_LOGD(TAG, "adding url: %s", url.c_str());
                             playList.add({HTTP_FILE, "", url});
                             pos += url.length() + 1;
                         }
@@ -658,6 +663,31 @@ const String& favoritesToString(String& s) {
     return s;
 }
 
+const String& favoritesToCStruct(String& s) {
+    File root = FFat.open("/");
+    s.clear();
+    if (!root || !root.isDirectory()) {
+        ESP_LOGE(TAG, "ERROR - root folder problem");
+        return s;
+    }
+    s = "const source preset[] = {\n";
+    File file = root.openNextFile();
+    while (file) {
+        if (!file.isDirectory()) {
+            s.concat("    {\"");
+            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+            s.concat("\", \"");
+            while (file.available())
+                s.concat((char)file.read());
+            file.close();
+            s.concat("\"},\n");
+        }
+        file = root.openNextFile();
+    }
+    s.concat("}\n");
+    return s;
+}
+
 bool startPlaylistItem(const playListItem& item) {
     audio.stopSong();
     switch (item.type) {
@@ -834,9 +864,9 @@ void upDatePlaylistOnClients() {
         ws.textAll(playList.toString(s));
     }
 
-    ESP_LOGD(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
+    ESP_LOGI(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
 
-    ESP_LOGD(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
+    ESP_LOGI(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
 
     updateHighlightedItemOnClients();
     playList.isUpdated = false;
