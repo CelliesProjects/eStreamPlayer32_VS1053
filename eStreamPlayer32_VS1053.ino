@@ -568,6 +568,13 @@ void setup() {
         request->send(response);
     });
 
+    server.on("/favorites", HTTP_GET, [] (AsyncWebServerRequest * request) {
+        AsyncResponseStream* const response = request->beginResponseStream("text/plain");
+        String s;
+        response->print(favoritesToCStruct(s));
+        request->send(response);
+    });
+
     static const char* SVG_MIMETYPE{"image/svg+xml"};
 
     server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
@@ -644,11 +651,13 @@ void setup() {
     ESP_LOGI(TAG, "Ready to rock!");
 }
 
+const char* ERROR_FAVORITES = "ERROR - could not open favorites folder";
+
 const String& favoritesToString(String& s) {
     File root = FFat.open("/");
-    s.clear();
     if (!root || !root.isDirectory()) {
-        ESP_LOGE(TAG, "ERROR - root folder problem");
+        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
+        s = ERROR_FAVORITES;
         return s;
     }
     s = "favorites\n";
@@ -665,9 +674,9 @@ const String& favoritesToString(String& s) {
 
 const String& favoritesToCStruct(String& s) {
     File root = FFat.open("/");
-    s.clear();
     if (!root || !root.isDirectory()) {
-        ESP_LOGE(TAG, "ERROR - root folder problem");
+        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
+        s = ERROR_FAVORITES;
         return s;
     }
     s = "const source preset[] = {\n";
@@ -684,7 +693,7 @@ const String& favoritesToCStruct(String& s) {
         }
         file = root.openNextFile();
     }
-    s.concat("}\n");
+    s.concat("};\n");
     return s;
 }
 
