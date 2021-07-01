@@ -14,6 +14,8 @@ const char* VERSION_STRING {
     "eStreamPlayer32 for VS1053 v0.0.1"
 };
 
+#define MAX_URL_LENGTH 1024
+
 bool inputReceived = false;
 bool endCurrentSong = false;
 
@@ -403,15 +405,20 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
                     ESP_LOGD(TAG, "complete multi frame ws message: %s", message.c_str());
 
-                    if (message.startsWith("filetoplaylist") ||
-                            message.startsWith("_filetoplaylist")) {
+                    if (message.startsWith("filetoplaylist") || message.startsWith("_filetoplaylist")) {
+
+                        int pos = message.indexOf("\n");
+
+                        if (-1 == pos) return;
+
                         ESP_LOGD(TAG, "multi frame playlist");
                         const bool startnow = (message[0] == '_');
                         const uint32_t previousSize = playList.size();
-                        int pos = message.indexOf("\n") + 1;
+
+                        pos++;
                         while (pos < info->len) {
                             const String url = message.substring(pos, message.indexOf("\n", pos));
-                            ESP_LOGI(TAG, "adding url: %s", url.c_str());
+                            ESP_LOGD(TAG, "adding url: %s", url.c_str());
                             playList.add({HTTP_FILE, "", url});
                             pos += url.length() + 1;
                         }
@@ -453,7 +460,11 @@ void setup() {
     ESP_LOGI(TAG, "eStreamPlayer32 for VS1053");
 
 #ifdef IDF_VER
-    ESP_LOGI(TAG, "compiled with IDF %s", IDF_VER); /* only available since 2.0.0 */
+    ESP_LOGI(TAG, "IDF %s", IDF_VER); /* only available since 2.0.0 */
+
+    ESP_LOGI(TAG, "esp32 Arduino core: %i.%i.%i", ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH);
+#else
+    ESP_LOGI(TAG, "IDF %s", esp_get_idf_version());
 #endif
 
     btStop();
@@ -563,6 +574,13 @@ void setup() {
         request->send(response);
     });
 
+    server.on("/favorites", HTTP_GET, [] (AsyncWebServerRequest * request) {
+        AsyncResponseStream* const response = request->beginResponseStream("text/plain");
+        String s;
+        response->print(favoritesToCStruct(s));
+        request->send(response);
+    });
+
     static const char* SVG_MIMETYPE{"image/svg+xml"};
 
     server.on("/radioicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
@@ -639,11 +657,13 @@ void setup() {
     ESP_LOGI(TAG, "Ready to rock!");
 }
 
+const char* ERROR_FAVORITES = "ERROR - could not open favorites folder";
+
 const String& favoritesToString(String& s) {
     File root = FFat.open("/");
-    s.clear();
     if (!root || !root.isDirectory()) {
-        ESP_LOGE(TAG, "ERROR - root folder problem");
+        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
+        s = ERROR_FAVORITES;
         return s;
     }
     s = "favorites\n";
@@ -655,6 +675,30 @@ const String& favoritesToString(String& s) {
         }
         file = root.openNextFile();
     }
+    return s;
+}
+
+const String& favoritesToCStruct(String& s) {
+    File root = FFat.open("/");
+    if (!root || !root.isDirectory()) {
+        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
+        s = ERROR_FAVORITES;
+        return s;
+    }
+    s = "const source preset[] = {\n";
+    File file = root.openNextFile();
+    while (file) {
+        if (!file.isDirectory() && file.size() < MAX_URL_LENGTH) {
+            s.concat("    {\"");
+            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+            s.concat("\", \"");
+            while (file.available())
+                s.concat((char)file.read());
+            s.concat("\"},\n");
+        }
+        file = root.openNextFile();
+    }
+    s.concat("};\n");
     return s;
 }
 
@@ -776,9 +820,9 @@ void handlePastedUrl() {
 void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
     File file = FFat.open("/" + filename);
     String url;
-    if (file) {
-        while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
-            url += (char)file.read();
+    if (file && file.size() < MAX_URL_LENGTH) {
+        while (file.available() && (file.peek() != '\n'))
+            url.concat((char)file.read());
         file.close();
     }
     else {
@@ -834,9 +878,9 @@ void upDatePlaylistOnClients() {
         ws.textAll(playList.toString(s));
     }
 
-    ESP_LOGD(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
+    ESP_LOGI(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
 
-    ESP_LOGD(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
+    ESP_LOGI(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
 
     updateHighlightedItemOnClients();
     playList.isUpdated = false;
