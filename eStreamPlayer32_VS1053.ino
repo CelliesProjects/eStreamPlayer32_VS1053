@@ -14,6 +14,8 @@ const char* VERSION_STRING {
     "eStreamPlayer32 for VS1053 v0.0.1"
 };
 
+#define MAX_URL_LENGTH 1024
+
 bool inputReceived = false;
 bool endCurrentSong = false;
 
@@ -458,7 +460,11 @@ void setup() {
     ESP_LOGI(TAG, "eStreamPlayer32 for VS1053");
 
 #ifdef IDF_VER
-    ESP_LOGI(TAG, "compiled with IDF %s", IDF_VER); /* only available since 2.0.0 */
+    ESP_LOGI(TAG, "IDF %s", IDF_VER); /* only available since 2.0.0 */
+
+    ESP_LOGI(TAG, "esp32 Arduino core: %i.%i.%i", ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH);
+#else
+    ESP_LOGI(TAG, "IDF %s", esp_get_idf_version());
 #endif
 
     btStop();
@@ -682,13 +688,12 @@ const String& favoritesToCStruct(String& s) {
     s = "const source preset[] = {\n";
     File file = root.openNextFile();
     while (file) {
-        if (!file.isDirectory()) {
+        if (!file.isDirectory() && file.size() < MAX_URL_LENGTH) {
             s.concat("    {\"");
             s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
             s.concat("\", \"");
             while (file.available())
                 s.concat((char)file.read());
-            file.close();
             s.concat("\"},\n");
         }
         file = root.openNextFile();
@@ -815,9 +820,9 @@ void handlePastedUrl() {
 void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
     File file = FFat.open("/" + filename);
     String url;
-    if (file) {
-        while (file.available() && (file.peek() != '\n') && url.length() < 1024) /* only read the first line and limit the size of the resulting string - unknown/leftover files might contain garbage*/
-            url += (char)file.read();
+    if (file && file.size() < MAX_URL_LENGTH) {
+        while (file.available() && (file.peek() != '\n'))
+            url.concat((char)file.read());
         file.close();
     }
     else {
