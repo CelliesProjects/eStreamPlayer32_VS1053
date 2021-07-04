@@ -38,7 +38,7 @@ const char* VOLUME_HEADER {
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
 
-const char* FAVORITES_FOLDER = "/";
+const char* FAVORITES_FOLDER = "/"; /* if this is a folder use a closing slash */
 
 int currentItem {NOTHING_PLAYING_VAL};
 
@@ -761,7 +761,7 @@ bool saveItemToFavorites(const playListItem& item, const String& filename) {
                     return false;
                 }
                 ESP_LOGD(TAG, "saving stream: %s -> %s", filename.c_str(), item.url.c_str());
-                File file = FFat.open("/" + filename, FILE_WRITE);
+                File file = FFat.open(FAVORITES_FOLDER + filename, FILE_WRITE);
                 if (!file) {
                     ESP_LOGE(TAG, "failed to open file for writing");
                     return false;
@@ -824,7 +824,7 @@ void handlePastedUrl() {
 }
 
 void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
-    File file = FFat.open("/" + filename);
+    File file = FFat.open(FAVORITES_FOLDER + filename);
     String url;
     if (file && file.size() < MAX_URL_LENGTH) {
         while (file.available() && (file.peek() != '\n'))
