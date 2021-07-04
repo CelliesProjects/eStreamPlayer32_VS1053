@@ -25,4 +25,4 @@ const IPAddress SECONDARY_DNS(0, 0, 0, 0);               /* Check in your router
 
 const char* NTP_POOL = "nl.pool.ntp.org";
 
-const char* TIMEZONE = "CET-1CEST,M3.5.0/2,M10.5.0/3";    /* Central European Time - see http://www.remotemonitoringsystems.ca/time-zone-abbreviations.php */
+const char* TIMEZONE = "CET-1CEST,M3.5.0/2,M10.5.0/3";    /* Central European Time - see https://sites.google.com/a/usapiens.com/opnode/time-zones */
