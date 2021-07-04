@@ -708,7 +708,7 @@ const String& favoritesToCStruct(String& s) {
     return s;
 }
 
-bool startPlaylistItem(const playListItem& item) {
+bool startItem(const playListItem& item) {
     audio.stopSong();
     switch (item.type) {
         case HTTP_FILE :
@@ -809,7 +809,7 @@ void handlePastedUrl() {
     currentItem = playList.size() - 1;
     updateHighlightedItemOnClients();
 
-    if (startPlaylistItem(item)) {
+    if (startItem(item)) {
         ESP_LOGD(TAG, "url started successful");
         playerStatus = PLAYING;
     }
@@ -874,7 +874,7 @@ void startCurrentItem() {
 
     updateHighlightedItemOnClients();
 
-    if (!startPlaylistItem(item))
+    if (!startItem(item))
         ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
 }
 
