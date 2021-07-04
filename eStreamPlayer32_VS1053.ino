@@ -38,6 +38,8 @@ const char* VOLUME_HEADER {
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
 
+const char* FAVORITES_FOLDER = "/";
+
 int currentItem {NOTHING_PLAYING_VAL};
 
 playList_t playList;
@@ -123,7 +125,9 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
         {
             String s;
             client->text(playList.toString(s));
-            client->text(favoritesToString(s));
+            s.clear();
+            favoritesToString(s);
+            client->text(!s.equals("") ? s : "favorites\nThe folder '" + String(FAVORITES_FOLDER) + "' could not be found!\n");
         }
         client->text(CURRENT_HEADER + String(currentItem));
         client->text(showstation);
@@ -657,48 +661,50 @@ void setup() {
     ESP_LOGI(TAG, "Ready to rock!");
 }
 
-const char* ERROR_FAVORITES = "ERROR - could not open favorites folder";
+const File openFolder(const String& folder) {
+    File item = FFat.open(folder);
+    if (!item || !item.isDirectory()) {
+        ESP_LOGE(TAG, "ERROR - could not open folder %s", folder.c_str());
+        return File{};
+    }
+    return item;
+}
 
 const String& favoritesToString(String& s) {
-    File root = FFat.open("/");
-    if (!root || !root.isDirectory()) {
-        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
-        s = ERROR_FAVORITES;
-        return s;
-    }
-    s = "favorites\n";
-    File file = root.openNextFile();
-    while (file) {
-        if (!file.isDirectory()) {
-            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
-            s.concat("\n");
+    File folder = openFolder(FAVORITES_FOLDER);
+    if (folder) {
+        s = "favorites\n";
+        File file = folder.openNextFile();
+        while (file) {
+            if (!file.isDirectory() && file.size() < MAX_URL_LENGTH) {
+                s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+                s.concat("\n");
+            }
+            file = folder.openNextFile();
         }
-        file = root.openNextFile();
     }
     return s;
 }
 
 const String& favoritesToCStruct(String& s) {
-    File root = FFat.open("/");
-    if (!root || !root.isDirectory()) {
-        ESP_LOGE(TAG, "%s", ERROR_FAVORITES);
-        s = ERROR_FAVORITES;
-        return s;
-    }
-    s = "const source preset[] = {\n";
-    File file = root.openNextFile();
-    while (file) {
-        if (!file.isDirectory() && file.size() < MAX_URL_LENGTH) {
-            s.concat("    {\"");
-            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
-            s.concat("\", \"");
-            while (file.available())
-                s.concat((char)file.read());
-            s.concat("\"},\n");
+    File folder = openFolder(FAVORITES_FOLDER);
+    if (folder) {
+        s = "const source preset[] = {\n";
+        File file = folder.openNextFile();
+        while (file) {
+            if (!file.isDirectory() && file.size() < MAX_URL_LENGTH) {
+                s.concat("    {\"");
+                s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+                s.concat("\", \"");
+                while (file.available())
+                    s.concat((char)file.read());
+                s.concat("\"},\n");
+            }
+            file = folder.openNextFile();
         }
-        file = root.openNextFile();
-    }
-    s.concat("};\n");
+        s.concat("};\n");
+    } else
+        s = "Could not open folder " + String(FAVORITES_FOLDER);
     return s;
 }
 
