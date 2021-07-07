@@ -11,7 +11,7 @@
 #include "icons.h"
 
 const char* VERSION_STRING {
-    "eStreamPlayer32 for VS1053 v0.0.1"
+    "eStreamPlayer32 for VS1053 v1.0.0"
 };
 
 #define MAX_URL_LENGTH 1024
