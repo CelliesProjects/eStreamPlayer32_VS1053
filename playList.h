@@ -35,12 +35,12 @@ class playList_t {
         void get(const uint32_t index, playListItem& item) {
             item = (index < list.size()) ? list[index] : (playListItem) {};
         }
-        /*
-            String& url(const uint32_t index, String& url) {
-              url = (index < list.size()) ? ((list[index].type == HTTP_PRESET) ? preset[list[index].index].url : list[index].url) : "";
-              return url;
-            }
-        */
+
+        String& url(const uint32_t index, String& url) {
+            url = (index < list.size()) ? ((list[index].type == HTTP_PRESET) ? preset[list[index].index].url : list[index].url) : "";
+            return url;
+        }
+
         void add(const playListItem& item) {
             if (list.size() < PLAYLIST_MAX_ITEMS) {
                 list.push_back(item);

@@ -19,6 +19,10 @@ const char* VERSION_STRING {
 bool inputReceived = false;
 bool endCurrentSong = false;
 
+bool pauseCurrentSong {false};
+bool resumeCurrentSong {false};
+size_t resumePosition{0};
+
 enum {
     PAUSED,
     PLAYING,
@@ -252,33 +256,29 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     }
                     return;
                 }
-                /*
-                        else if (!strcmp("pause", pch)) {
-                          switch (playerStatus) {
-                            case PAUSED :{
-                              const uint8_t savedVolume = audio.getVolume();
-                              audio.setVolume(0);
-                              audio.pauseResume();
-                              audio.loop();
-                              audio.setVolume(savedVolume);
-                              playerStatus = PLAYING;
-                              //send play icon to clients
-                            }
+
+                else if (!strcmp("pause", pch)) {
+                    switch (playerStatus) {
+
+                        case PLAYING :
+                            // if (!audio.size()) just mute the sound
+                            // else
+                            endCurrentSong = true;
+                            pauseCurrentSong = true;
+                            playerStatus = PAUSED;
+                            //TODO: send pause icon to clients
                             break;
-                            case PLAYING : {
-                              const uint8_t savedVolume = audio.getVolume();
-                              audio.setVolume(0);
-                              audio.pauseResume();
-                              delay(2);
-                              audio.setVolume(savedVolume);
-                              playerStatus = PAUSED;
-                              //send pause icon to clients
-                            }
+
+                        case PAUSED :
+                            // if (!audio.size()) just unmute the sound
+                            // else
+                            resumeCurrentSong = true;
                             break;
-                            default : {};
-                          }
-                        }
-                */
+
+                        default : {};
+                    }
+                }
+
                 else if (!strcmp("previous", pch)) {
                     if (PLAYLISTEND == playerStatus) return;
                     ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
@@ -867,7 +867,7 @@ void startCurrentItem() {
     playListItem item;
     playList.get(currentItem, item);
 
-    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem + 1);
+    ESP_LOGD(TAG, "Starting playlist item: %i", currentItem + 1);
 
     updateHighlightedItemOnClients();
 
@@ -881,9 +881,9 @@ void upDatePlaylistOnClients() {
         ws.textAll(playList.toString(s));
     }
 
-    ESP_LOGI(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
+    ESP_LOGD(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
 
-    ESP_LOGI(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
+    ESP_LOGD(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
 
     updateHighlightedItemOnClients();
     playList.isUpdated = false;
@@ -900,9 +900,22 @@ void loop() {
     */
     ws.cleanupClients();
 
+    ESP_LOGD(TAG, "stream pos: %lu", audio.isRunning() ? resumePosition + audio.position() : 0);
+
     if (endCurrentSong) {
-        audio.stopSong();
+        resumePosition += audio.position();
+        audio.stopSong(pauseCurrentSong);
+        pauseCurrentSong = false;
         endCurrentSong = false;
+    }
+
+    if (resumeCurrentSong) {
+        String url;
+        ESP_LOGD(TAG, "resuming from position: %lu\nurl: %s", resumePosition, playList.url(currentItem, url).c_str());
+        audio.connecttohost(playList.url(currentItem, url), resumePosition); /* radio streams will happily ignore the resumePosition */
+        playerStatus = PLAYING;
+        resumeCurrentSong = false;
+        //TODO: send play icon to clients
     }
 
     if (newUrl.waiting) {
@@ -917,6 +930,7 @@ void loop() {
         inputReceived = false;
         if (currentItem < playList.size() - 1) {
             currentItem++;
+            resumePosition = 0;
             startCurrentItem();
         }
         else
