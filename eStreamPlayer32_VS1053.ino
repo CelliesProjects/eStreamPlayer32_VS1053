@@ -17,11 +17,12 @@ const char* VERSION_STRING {
 #define MAX_URL_LENGTH 1024
 
 bool inputReceived = false;
-bool endCurrentSong = false;
+bool haltCurrentSong = false;
 
-bool pauseCurrentSong {false};
+bool moveInCurrentSong {false};
 bool resumeCurrentSong {false};
-size_t resumePosition{0};
+size_t resumePosition {0};
+String lastUrl;
 
 enum {
     PAUSED,
@@ -90,6 +91,7 @@ void playListHasEnded() {
     audio_showstreamtitle(VERSION_STRING);
     updateHighlightedItemOnClients();
     ESP_LOGD(TAG, "End of playlist.");
+    ws.textAll("status\nplaying\n");
 }
 
 void updateFavoritesOnClients() {
@@ -132,7 +134,14 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             s.clear();
             favoritesToString(s);
             client->text(!s.equals("") ? s : "favorites\nThe folder '" + String(FAVORITES_FOLDER) + "' could not be found!\n");
+
+            s = (playerStatus != PAUSED) ? "playing\n" : "paused\n";
+            client->text("status\n" + s);
         }
+
+        if (audio.size())
+            client->text("progress\n" + String(resumePosition + audio.position()) + "\n" + String(resumePosition + audio.size()) + "\n");
+
         client->text(CURRENT_HEADER + String(currentItem));
         client->text(showstation);
         if (currentItem != NOTHING_PLAYING_VAL)
@@ -210,7 +219,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     playList.clear();
                     playListHasEnded();
                     inputReceived = true;
-                    endCurrentSong = true;
+                    haltCurrentSong = true;
                     return;
                 }
 
@@ -222,6 +231,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                             currentItem = index - 1;
                             playerStatus = PLAYING;
                             inputReceived = true;
+                            ws.textAll("status\nplaying\n");
                         }
                     }
                     return;
@@ -235,7 +245,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     if (index == currentItem) {
                         playList.remove(index);
 
-                        endCurrentSong = true;
+                        haltCurrentSong = true;
                         if (!playList.size()) {
                             playListHasEnded();
                             return;
@@ -261,17 +271,15 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     switch (playerStatus) {
 
                         case PLAYING :
-                            // if (!audio.size()) just mute the sound
-                            // else
-                            endCurrentSong = true;
-                            pauseCurrentSong = true;
+                            lastUrl = audio.lastUrl();
+                            ESP_LOGI(TAG, "last url:", lastUrl.c_str());
+                            haltCurrentSong = true;
+                            moveInCurrentSong = true;
                             playerStatus = PAUSED;
-                            //TODO: send pause icon to clients
+                            ws.textAll("status\npaused\n");
                             break;
 
                         case PAUSED :
-                            // if (!audio.size()) just unmute the sound
-                            // else
                             resumeCurrentSong = true;
                             break;
 
@@ -280,7 +288,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                 }
 
                 else if (!strcmp("previous", pch)) {
-                    if (PLAYLISTEND == playerStatus) return;
+                    if (PLAYING != playerStatus) return;
                     ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
                     if (currentItem > 0) {
                         currentItem--;
@@ -292,7 +300,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                 }
 
                 else if (!strcmp("next", pch)) {
-                    if (PLAYLISTEND == playerStatus) return;
+                    if (PLAYING != playerStatus) return;
                     ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
                     if (currentItem < playList.size() - 1) {
                         inputReceived = true;
@@ -372,6 +380,20 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         return;
                     }
                 }
+
+                else if (!strcmp("resumefrom", pch)) {
+                    if (PAUSED == playerStatus) return;
+                    pch = strtok(NULL, "\n");
+                    if (pch) {
+                        lastUrl = audio.lastUrl();
+                        ESP_LOGI(TAG, "last url:", lastUrl.c_str());
+                        moveInCurrentSong = true;
+                        resumeCurrentSong = true;
+                        resumePosition = strtol(pch, NULL, 10);
+                    }
+                    return;
+                }
+
             }
         } else {
             //message is comprised of multiple frames or the frame is split into multiple packets
@@ -647,6 +669,13 @@ void setup() {
         request->send(response);
     });
 
+    server.on("/pauseicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, pauseicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
     server.onNotFound([](AsyncWebServerRequest * request) {
         ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
         request->send(404);
@@ -890,7 +919,7 @@ void upDatePlaylistOnClients() {
 }
 
 void loop() {
-    audio.loop();
+
     /*
         static int32_t lastFreeRAM = 0;
         if (lastFreeRAM != ESP.getFreeHeap()) {
@@ -898,24 +927,48 @@ void loop() {
             ESP_LOGI(TAG, "free ram: %i", lastFreeRAM);
         }
     */
+
+    audio.loop();
+
     ws.cleanupClients();
 
-    ESP_LOGD(TAG, "stream pos: %lu", audio.isRunning() ? resumePosition + audio.position() : 0);
+    {
+        /* send a progress update to clients */
+        const auto UPDATE_FREQ_HZ = 10;
+        const auto UPDATE_INTERVAL_MS = 1000 / UPDATE_FREQ_HZ;
+        static unsigned long previousTime = millis();
+        static size_t previousPosition = 0;
+        if (audio.size() && millis() - previousTime > UPDATE_INTERVAL_MS && resumePosition + audio.position() != previousPosition) {
+            previousTime = millis();
 
-    if (endCurrentSong) {
+            ESP_LOGD(TAG, "Position: %lu size: %lu Percent: %.2f",
+                     resumePosition + audio.position(),
+                     resumePosition + audio.size(),
+                     100.0 * (resumePosition + audio.position()) / (resumePosition + audio.size()));
+
+            previousPosition = resumePosition + audio.position();
+            ws.textAll("progress\n" + String(previousPosition) + "\n" + String(resumePosition + audio.size()) + "\n");
+        }
+    }
+
+    if (haltCurrentSong) {
         resumePosition += audio.position();
-        audio.stopSong(pauseCurrentSong);
-        pauseCurrentSong = false;
-        endCurrentSong = false;
+        audio.stopSong(moveInCurrentSong);
+        haltCurrentSong = false;
+        moveInCurrentSong = false;
+    }
+
+    if (moveInCurrentSong) {
+        audio.stopSong(moveInCurrentSong);
+        moveInCurrentSong = false;
     }
 
     if (resumeCurrentSong) {
-        String url;
-        ESP_LOGD(TAG, "resuming from position: %lu\nurl: %s", resumePosition, playList.url(currentItem, url).c_str());
-        audio.connecttohost(playList.url(currentItem, url), resumePosition); /* radio streams will happily ignore the resumePosition */
+        audio.connecttohost(lastUrl, resumePosition);
+        ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
         playerStatus = PLAYING;
         resumeCurrentSong = false;
-        //TODO: send play icon to clients
+        ws.textAll("status\nplaying\n");
     }
 
     if (newUrl.waiting) {
