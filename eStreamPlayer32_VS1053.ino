@@ -272,7 +272,6 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
 
                         case PLAYING :
                             lastUrl = audio.lastUrl();
-                            ESP_LOGI(TAG, "last url:", lastUrl.c_str());
                             haltCurrentSong = true;
                             moveInCurrentSong = true;
                             playerStatus = PAUSED;
@@ -385,11 +384,13 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     if (PAUSED == playerStatus) return;
                     pch = strtok(NULL, "\n");
                     if (pch) {
-                        lastUrl = audio.lastUrl();
-                        ESP_LOGI(TAG, "last url:", lastUrl.c_str());
-                        moveInCurrentSong = true;
-                        resumeCurrentSong = true;
-                        resumePosition = strtol(pch, NULL, 10);
+                        const size_t request = strtol(pch, NULL, 10);
+                        if (request < resumePosition + audio.size()) {
+                            resumePosition = request;
+                            moveInCurrentSong = true;
+                            resumeCurrentSong = true;
+                            lastUrl = audio.lastUrl();
+                        }
                     }
                     return;
                 }
@@ -959,15 +960,19 @@ void loop() {
     }
 
     if (moveInCurrentSong) {
-        audio.stopSong(moveInCurrentSong);
+        audio.stopSong(VS1053_RESUME);
         moveInCurrentSong = false;
     }
 
     if (resumeCurrentSong) {
-        audio.connecttohost(lastUrl, resumePosition);
-        ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
         playerStatus = PLAYING;
         resumeCurrentSong = false;
+
+        if (audio.connecttohost(lastUrl, resumePosition))
+            ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
+        else
+            ESP_LOGE(TAG, "could not resume from position: %lu url: %s", resumePosition, lastUrl.c_str());
+
         ws.textAll("status\nplaying\n");
     }
 
