@@ -203,6 +203,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         currentItem = previousSize - 1;
                         playerStatus = PLAYING;
                         inputReceived = true;
+                        ws.textAll("status\nplaying\n");
                         return;
                     }
                     // start playing at the correct position if not already playing
@@ -366,6 +367,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         if (startnow) {
                             currentItem = playList.size() - 2;
                             playerStatus = PLAYING;
+                            ws.textAll("status\nplaying\n");
                             inputReceived = true;
                             return;
                         }
@@ -816,8 +818,9 @@ void handlePastedUrl() {
         return;
     }
 
-    const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
-    playList.add(item);
+    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+
+    playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
 
     if (!playList.isUpdated) {
         const String buffer = String(MESSAGE_HEADER) + "Could not add url.";
@@ -825,29 +828,16 @@ void handlePastedUrl() {
         return;
     }
 
-    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+    upDatePlaylistOnClients();
 
-    {
-        String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
-        ws.text(newUrl.clientId, buffer.c_str());
-        ws.textAll(playList.toString(buffer));
-    }
+    currentItem = playList.size() - 2;
 
-    currentItem = playList.size() - 1;
-    updateHighlightedItemOnClients();
+    playerStatus = PLAYING;
+    audio.stopSong();
+    ws.textAll("status\nplaying\n");
 
-    if (startItem(item)) {
-        ESP_LOGD(TAG, "url started successful");
-        playerStatus = PLAYING;
-    }
-    else {
-        char buff[100];
-        snprintf(buff, sizeof(buff), "%sFailed to play stream", MESSAGE_HEADER);
-        ws.text(newUrl.clientId, buff);
-        playList.remove(playList.size() - 1);
-        playListHasEnded();
-        ESP_LOGD(TAG, "url failed to start");
-    }
+    const String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
+    ws.text(newUrl.clientId, buffer.c_str());
 }
 
 void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
@@ -873,6 +863,8 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
         inputReceived = true;
+        ws.textAll("status\nplaying\n");
+
         return;
     }
     if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -897,7 +889,7 @@ void startCurrentItem() {
     playListItem item;
     playList.get(currentItem, item);
 
-    ESP_LOGD(TAG, "Starting playlist item: %i", currentItem + 1);
+    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
 
     updateHighlightedItemOnClients();
 
@@ -942,7 +934,7 @@ void loop() {
         if (audio.size() && millis() - previousTime > UPDATE_INTERVAL_MS && resumePosition + audio.position() != previousPosition) {
             previousTime = millis();
 
-            ESP_LOGD(TAG, "Position: %lu size: %lu Percent: %.2f",
+            ESP_LOGD(TAG, "position: %lu size: %lu %.2f%%",
                      resumePosition + audio.position(),
                      resumePosition + audio.size(),
                      100.0 * (resumePosition + audio.position()) / (resumePosition + audio.size()));
@@ -960,20 +952,20 @@ void loop() {
     }
 
     if (moveInCurrentSong) {
-        audio.stopSong(VS1053_RESUME);
+        audio.stopSong(VS1053_DONT_CLOSE);
         moveInCurrentSong = false;
     }
 
     if (resumeCurrentSong) {
         playerStatus = PLAYING;
         resumeCurrentSong = false;
-
-        if (audio.connecttohost(lastUrl, resumePosition))
-            ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
-        else
-            ESP_LOGE(TAG, "could not resume from position: %lu url: %s", resumePosition, lastUrl.c_str());
-
         ws.textAll("status\nplaying\n");
+        if (audio.connecttohost(lastUrl, resumePosition)) {
+            ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
+        }
+        else {
+            ESP_LOGE(TAG, "could not resume from position: %lu url: %s", resumePosition, lastUrl.c_str());
+        }
     }
 
     if (newUrl.waiting) {
