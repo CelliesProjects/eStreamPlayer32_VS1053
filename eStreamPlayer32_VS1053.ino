@@ -42,7 +42,7 @@ const char* VOLUME_HEADER {
 
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
-
+const char* STATUS_PLAYING{"status\nplaying\n"};
 const char* FAVORITES_FOLDER = "/"; /* if this is a folder use a closing slash */
 
 int currentItem {NOTHING_PLAYING_VAL};
@@ -91,7 +91,7 @@ void playListHasEnded() {
     audio_showstreamtitle(VERSION_STRING);
     updateHighlightedItemOnClients();
     ESP_LOGD(TAG, "End of playlist.");
-    ws.textAll("status\nplaying\n");
+    ws.textAll(STATUS_PLAYING);
 }
 
 void updateFavoritesOnClients() {
@@ -203,7 +203,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         currentItem = previousSize - 1;
                         playerStatus = PLAYING;
                         inputReceived = true;
-                        ws.textAll("status\nplaying\n");
+                        ws.textAll(STATUS_PLAYING);
                         return;
                     }
                     // start playing at the correct position if not already playing
@@ -232,7 +232,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                             currentItem = index - 1;
                             playerStatus = PLAYING;
                             inputReceived = true;
-                            ws.textAll("status\nplaying\n");
+                            ws.textAll(STATUS_PLAYING);
                         }
                     }
                     return;
@@ -367,7 +367,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         if (startnow) {
                             currentItem = playList.size() - 2;
                             playerStatus = PLAYING;
-                            ws.textAll("status\nplaying\n");
+                            ws.textAll(STATUS_PLAYING);
                             inputReceived = true;
                             return;
                         }
@@ -834,7 +834,7 @@ void handlePastedUrl() {
 
     playerStatus = PLAYING;
     audio.stopSong();
-    ws.textAll("status\nplaying\n");
+    ws.textAll(STATUS_PLAYING);
 
     const String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
     ws.text(newUrl.clientId, buffer.c_str());
@@ -863,7 +863,7 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
         inputReceived = true;
-        ws.textAll("status\nplaying\n");
+        ws.textAll(STATUS_PLAYING);
 
         return;
     }
@@ -959,7 +959,7 @@ void loop() {
     if (resumeCurrentSong) {
         playerStatus = PLAYING;
         resumeCurrentSong = false;
-        ws.textAll("status\nplaying\n");
+        ws.textAll(STATUS_PLAYING);
         if (audio.connecttohost(lastUrl, resumePosition)) {
             ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
         }
