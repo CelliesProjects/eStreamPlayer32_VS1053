@@ -194,7 +194,7 @@ a{
   color:inherit;
   opacity:0.93;
 }
-#overlay:hover{
+#overlay:hover, #progress{
   cursor:pointer;
 }
 #messageoverlay{
@@ -207,6 +207,21 @@ a{
   border:solid 1px white;
   border-radius:5px;
   padding:10px;
+}
+progress{
+  background:#ffeeee;
+  border:none;
+}
+progress[value] {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+progress::-webkit-progress-bar {
+  background: #ffeeee;
+}
+progress::-webkit-progress-value, progress::-moz-progress-bar  {
+  background: green;
 }
 #progress{
   position:relative;
@@ -608,7 +623,7 @@ $(document).ready(function(){
     setOverlayTimeOut();
   });
 
-  $('#overlay').on('mouseup','#addfavorite',function(e){
+  $('#overlay').on('click','#addfavorite',function(e){
     e.stopPropagation();
     const filename = prompt("Enter a filename", $('#showstation').text());
     if (!filename) return;
