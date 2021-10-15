@@ -952,7 +952,7 @@ void loop() {
     }
 
     if (moveInCurrentSong) {
-        audio.stopSong(VS1053_DONT_CLOSE);
+        audio.stopSong(VS1053_RESUME);
         moveInCurrentSong = false;
     }
 
