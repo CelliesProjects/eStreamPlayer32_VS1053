@@ -19,6 +19,8 @@ const source preset[] {
     {"Radio 10 Disco Classics", "http://19993.live.streamtheworld.com/RADIO10.mp3"},
     {"Sublime Soul", "http://20863.live.streamtheworld.com/SUBLIMESOUL.mp3"},
     {"XXL Stenders", "http://streams.robstenders.nl:8063/bonanza_mp3"},
+    {"LXClassics", "http://www.lxclassics.com/playlist/LXClassics.m3u"},
+    {"192 Radio Nederland", "http://192radio.stream-server.nl/stream"},
     {"RadioEins", "http://radioeins.de/stream"},
     {"BBC radio 1", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one"},
     {"BBC radio 2", "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_two"},
@@ -30,4 +32,5 @@ const source preset[] {
     {"DI Radio Digital Impulse - House", "http://5.39.71.159:8986/"},
     {"DI Radio Digital Impulse - DKR TecHouse", "http://5.39.71.159:8243/"},
     {"Tekno1", "http://tekno1.radioca.st/"},
+    {"BollyHits Radio", "http://hoth.alonhosting.com:1080/stream/1/"},
 };

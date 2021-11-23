@@ -17,7 +17,12 @@ const char* VERSION_STRING {
 #define MAX_URL_LENGTH 1024
 
 bool inputReceived = false;
-bool endCurrentSong = false;
+bool haltCurrentSong = false;
+
+bool moveInCurrentSong {false};
+bool resumeCurrentSong {false};
+size_t resumePosition {0};
+String lastUrl;
 
 enum {
     PAUSED,
@@ -37,7 +42,7 @@ const char* VOLUME_HEADER {
 
 const char* CURRENT_HEADER{"currentPLitem\n"};
 const char* MESSAGE_HEADER{"message\n"};
-
+const char* STATUS_PLAYING{"status\nplaying\n"};
 const char* FAVORITES_FOLDER = "/"; /* if this is a folder use a closing slash */
 
 int currentItem {NOTHING_PLAYING_VAL};
@@ -86,6 +91,7 @@ void playListHasEnded() {
     audio_showstreamtitle(VERSION_STRING);
     updateHighlightedItemOnClients();
     ESP_LOGD(TAG, "End of playlist.");
+    ws.textAll(STATUS_PLAYING);
 }
 
 void updateFavoritesOnClients() {
@@ -128,7 +134,14 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
             s.clear();
             favoritesToString(s);
             client->text(!s.equals("") ? s : "favorites\nThe folder '" + String(FAVORITES_FOLDER) + "' could not be found!\n");
+
+            s = (playerStatus != PAUSED) ? "playing\n" : "paused\n";
+            client->text("status\n" + s);
         }
+
+        if (audio.size())
+            client->text("progress\n" + String(resumePosition + audio.position()) + "\n" + String(resumePosition + audio.size()) + "\n");
+
         client->text(CURRENT_HEADER + String(currentItem));
         client->text(showstation);
         if (currentItem != NOTHING_PLAYING_VAL)
@@ -190,6 +203,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         currentItem = previousSize - 1;
                         playerStatus = PLAYING;
                         inputReceived = true;
+                        ws.textAll(STATUS_PLAYING);
                         return;
                     }
                     // start playing at the correct position if not already playing
@@ -206,7 +220,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     playList.clear();
                     playListHasEnded();
                     inputReceived = true;
-                    endCurrentSong = true;
+                    haltCurrentSong = true;
                     return;
                 }
 
@@ -218,6 +232,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                             currentItem = index - 1;
                             playerStatus = PLAYING;
                             inputReceived = true;
+                            ws.textAll(STATUS_PLAYING);
                         }
                     }
                     return;
@@ -231,7 +246,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     if (index == currentItem) {
                         playList.remove(index);
 
-                        endCurrentSong = true;
+                        haltCurrentSong = true;
                         if (!playList.size()) {
                             playListHasEnded();
                             return;
@@ -252,35 +267,28 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     }
                     return;
                 }
-                /*
-                        else if (!strcmp("pause", pch)) {
-                          switch (playerStatus) {
-                            case PAUSED :{
-                              const uint8_t savedVolume = audio.getVolume();
-                              audio.setVolume(0);
-                              audio.pauseResume();
-                              audio.loop();
-                              audio.setVolume(savedVolume);
-                              playerStatus = PLAYING;
-                              //send play icon to clients
-                            }
+
+                else if (!strcmp("pause", pch)) {
+                    switch (playerStatus) {
+
+                        case PLAYING :
+                            lastUrl = audio.lastUrl();
+                            haltCurrentSong = true;
+                            moveInCurrentSong = true;
+                            playerStatus = PAUSED;
+                            ws.textAll("status\npaused\n");
                             break;
-                            case PLAYING : {
-                              const uint8_t savedVolume = audio.getVolume();
-                              audio.setVolume(0);
-                              audio.pauseResume();
-                              delay(2);
-                              audio.setVolume(savedVolume);
-                              playerStatus = PAUSED;
-                              //send pause icon to clients
-                            }
+
+                        case PAUSED :
+                            resumeCurrentSong = true;
                             break;
-                            default : {};
-                          }
-                        }
-                */
+
+                        default : {};
+                    }
+                }
+
                 else if (!strcmp("previous", pch)) {
-                    if (PLAYLISTEND == playerStatus) return;
+                    if (PLAYING != playerStatus) return;
                     ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
                     if (currentItem > 0) {
                         currentItem--;
@@ -292,7 +300,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                 }
 
                 else if (!strcmp("next", pch)) {
-                    if (PLAYLISTEND == playerStatus) return;
+                    if (PLAYING != playerStatus) return;
                     ESP_LOGD(TAG, "current: %i size: %i", currentItem, playList.size());
                     if (currentItem < playList.size() - 1) {
                         inputReceived = true;
@@ -359,6 +367,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         if (startnow) {
                             currentItem = playList.size() - 2;
                             playerStatus = PLAYING;
+                            ws.textAll(STATUS_PLAYING);
                             inputReceived = true;
                             return;
                         }
@@ -372,6 +381,22 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         return;
                     }
                 }
+
+                else if (!strcmp("resumefrom", pch)) {
+                    if (PAUSED == playerStatus) return;
+                    pch = strtok(NULL, "\n");
+                    if (pch) {
+                        const size_t request = strtol(pch, NULL, 10);
+                        if (request < resumePosition + audio.size()) {
+                            resumePosition = request;
+                            moveInCurrentSong = true;
+                            resumeCurrentSong = true;
+                            lastUrl = audio.lastUrl();
+                        }
+                    }
+                    return;
+                }
+
             }
         } else {
             //message is comprised of multiple frames or the frame is split into multiple packets
@@ -487,7 +512,7 @@ void setup() {
     }
 
     if (psramInit()) {
-        ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
+        ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0f * 1024));
     }
 
     /* check if a ffat partition is defined and halt the system if it is not defined*/
@@ -647,6 +672,13 @@ void setup() {
         request->send(response);
     });
 
+    server.on("/pauseicon.svg", HTTP_GET, [] (AsyncWebServerRequest * request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, pauseicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
     server.onNotFound([](AsyncWebServerRequest * request) {
         ESP_LOGE(TAG, "404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
         request->send(404);
@@ -786,8 +818,9 @@ void handlePastedUrl() {
         return;
     }
 
-    const playListItem item {HTTP_STREAM, newUrl.url, newUrl.url};
-    playList.add(item);
+    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+
+    playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
 
     if (!playList.isUpdated) {
         const String buffer = String(MESSAGE_HEADER) + "Could not add url.";
@@ -795,29 +828,16 @@ void handlePastedUrl() {
         return;
     }
 
-    ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
+    upDatePlaylistOnClients();
 
-    {
-        String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
-        ws.text(newUrl.clientId, buffer.c_str());
-        ws.textAll(playList.toString(buffer));
-    }
+    currentItem = playList.size() - 2;
 
-    currentItem = playList.size() - 1;
-    updateHighlightedItemOnClients();
+    playerStatus = PLAYING;
+    audio.stopSong();
+    ws.textAll(STATUS_PLAYING);
 
-    if (startItem(item)) {
-        ESP_LOGD(TAG, "url started successful");
-        playerStatus = PLAYING;
-    }
-    else {
-        char buff[100];
-        snprintf(buff, sizeof(buff), "%sFailed to play stream", MESSAGE_HEADER);
-        ws.text(newUrl.clientId, buff);
-        playList.remove(playList.size() - 1);
-        playListHasEnded();
-        ESP_LOGD(TAG, "url failed to start");
-    }
+    const String buffer = String(MESSAGE_HEADER) + "opening " + newUrl.url;
+    ws.text(newUrl.clientId, buffer.c_str());
 }
 
 void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
@@ -843,6 +863,8 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         currentItem = playList.size() - 2;
         playerStatus = PLAYING;
         inputReceived = true;
+        ws.textAll(STATUS_PLAYING);
+
         return;
     }
     if (!audio.isRunning() && PAUSED != playerStatus) {
@@ -867,7 +889,7 @@ void startCurrentItem() {
     playListItem item;
     playList.get(currentItem, item);
 
-    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem + 1);
+    ESP_LOGI(TAG, "Starting playlist item: %i", currentItem);
 
     updateHighlightedItemOnClients();
 
@@ -881,16 +903,16 @@ void upDatePlaylistOnClients() {
         ws.textAll(playList.toString(s));
     }
 
-    ESP_LOGI(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
+    ESP_LOGD(TAG, "playlist: %i items - on-chip RAM: %i bytes free", playList.size(), ESP.getFreeHeap());
 
-    ESP_LOGI(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
+    ESP_LOGD(TAG, "%i bytes PSRAM used.", ESP.getPsramSize() - ESP.getFreePsram());
 
     updateHighlightedItemOnClients();
     playList.isUpdated = false;
 }
 
 void loop() {
-    audio.loop();
+
     /*
         static int32_t lastFreeRAM = 0;
         if (lastFreeRAM != ESP.getFreeHeap()) {
@@ -898,11 +920,52 @@ void loop() {
             ESP_LOGI(TAG, "free ram: %i", lastFreeRAM);
         }
     */
+
+    audio.loop();
+
     ws.cleanupClients();
 
-    if (endCurrentSong) {
-        audio.stopSong();
-        endCurrentSong = false;
+    {
+        /* send a progress update to clients */
+        const auto UPDATE_FREQ_HZ = 10;
+        const auto UPDATE_INTERVAL_MS = 1000 / UPDATE_FREQ_HZ;
+        static unsigned long previousTime = millis();
+        static size_t previousPosition = 0;
+        if (audio.size() && millis() - previousTime > UPDATE_INTERVAL_MS && resumePosition + audio.position() != previousPosition) {
+            previousTime = millis();
+
+            ESP_LOGD(TAG, "position: %lu size: %lu %.2f%%",
+                     resumePosition + audio.position(),
+                     resumePosition + audio.size(),
+                     100.0f * (resumePosition + audio.position()) / (resumePosition + audio.size()));
+
+            previousPosition = resumePosition + audio.position();
+            ws.textAll("progress\n" + String(previousPosition) + "\n" + String(resumePosition + audio.size()) + "\n");
+        }
+    }
+
+    if (haltCurrentSong) {
+        resumePosition += audio.position();
+        audio.stopSong(moveInCurrentSong);
+        haltCurrentSong = false;
+        moveInCurrentSong = false;
+    }
+
+    if (moveInCurrentSong) {
+        audio.stopSong(VS1053_RESUME);
+        moveInCurrentSong = false;
+    }
+
+    if (resumeCurrentSong) {
+        playerStatus = PLAYING;
+        resumeCurrentSong = false;
+        ws.textAll(STATUS_PLAYING);
+        if (audio.connecttohost(lastUrl, resumePosition)) {
+            ESP_LOGD(TAG, "resumed from position: %lu url: %s", resumePosition, lastUrl.c_str());
+        }
+        else {
+            ESP_LOGE(TAG, "could not resume from position: %lu url: %s", resumePosition, lastUrl.c_str());
+        }
     }
 
     if (newUrl.waiting) {
@@ -917,6 +980,7 @@ void loop() {
         inputReceived = false;
         if (currentItem < playList.size() - 1) {
             currentItem++;
+            resumePosition = 0;
             startCurrentItem();
         }
         else
