@@ -5,7 +5,7 @@ Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board
 
 Supports http, https (insecure mode) and chunked streams.
 
-Plays mp3, ogg, aac, aac+ and wav streams.
+Plays mp3, ogg, aac and aac+ streams.
 
 ### What does it do?
 
@@ -59,8 +59,8 @@ Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/r
 
 ### Software needed
 
--  [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) licensed under [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
--  [ESP32_VS1053_Stream](https://github.com/CelliesProjects/ESP32_VS1053_Stream) No license yet.
+-  [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest) -> [GNU General Public License v3.0](https://github.com/baldram/ESP_VS1053_Library/blob/master/LICENSE.md)
+-  [ESP32_VS1053_Stream](https://github.com/CelliesProjects/ESP32_VS1053_Stream) -> [MIT license](https://github.com/CelliesProjects/ESP32_VS1053_Stream/blob/master/LICENSE.md).
 -  [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (LGPL-3.0 License)
 -  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (LGPL-3.0 License)
 -  A [lamp](https://en.wikipedia.org/wiki/LAMP_%28software_bundle%29) or llmp webstack to serve local files.
