@@ -512,7 +512,7 @@ void setup() {
     }
 
     if (psramInit()) {
-        ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0 * 1024));
+        ESP_LOGI(TAG, "%.2fMB PSRAM free.", ESP.getFreePsram() / (1024.0f * 1024));
     }
 
     /* check if a ffat partition is defined and halt the system if it is not defined*/
@@ -937,7 +937,7 @@ void loop() {
             ESP_LOGD(TAG, "position: %lu size: %lu %.2f%%",
                      resumePosition + audio.position(),
                      resumePosition + audio.size(),
-                     100.0 * (resumePosition + audio.position()) / (resumePosition + audio.size()));
+                     100.0f * (resumePosition + audio.position()) / (resumePosition + audio.size()));
 
             previousPosition = resumePosition + audio.position();
             ws.textAll("progress\n" + String(previousPosition) + "\n" + String(resumePosition + audio.size()) + "\n");
