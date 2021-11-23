@@ -1,6 +1,6 @@
 # eStreamPlayer32_VS1053
 
-A web-based esp32 program to play webradio and mp3/aac/wav files from a lamp or llmp server.
+A web-based esp32 program to play webradio and mp3/aac/aac+ files from a lamp or llmp server.
 Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board.
 
 Supports http, https (insecure mode) and chunked streams.
