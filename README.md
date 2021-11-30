@@ -25,19 +25,19 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 #### File info overlay
 
-![home](img/overlay.png)
+![overlay](https://user-images.githubusercontent.com/24290108/144031653-fae792d3-9465-43a3-be7a-48b92bd972c8.png)
 
 #### LIBRARY tab
 
-![library](img/library.png)
+![library](https://user-images.githubusercontent.com/24290108/144031862-9764fe6c-6f84-4a2f-b6ad-5aeee999f056.png)
 
 #### WEBRADIO tab
 
-![webradio](img/webradio.png)
+![webradio](https://user-images.githubusercontent.com/24290108/144031827-298cceee-6e40-4bb0-b107-6b7cefe11623.png)
 
 #### FAVORITES tab
 
-![favorites](img/favorites.png)
+![favorites](https://user-images.githubusercontent.com/24290108/144031557-07e7238e-2e8f-4876-b297-31c82878e1af.png)
 
 ### Setup
 
