@@ -67,8 +67,8 @@ void updateHighlightedItemOnClients() {
 const String urlEncode(const String& s) {
     //https://en.wikipedia.org/wiki/Percent-encoding
     String encodedstr{""};
-    for (int i = 0; i < s.length(); i++) {
-        switch (s.charAt(i)) {
+    for (auto const c : s) {
+        switch (c) {
             case ' ' : encodedstr.concat("%20");
                 break;
             case '!' : encodedstr.concat("%21");
@@ -77,7 +77,7 @@ const String urlEncode(const String& s) {
                 break;
             case  39 : encodedstr.concat("%27"); //39 == single quote '
                 break;
-            default : encodedstr.concat(s.charAt(i));
+            default : encodedstr.concat(c);
         }
     }
     ESP_LOGD(TAG, "encoded url: %s", encodedstr.c_str());
