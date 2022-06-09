@@ -893,8 +893,12 @@ void startCurrentItem() {
 
     updateHighlightedItemOnClients();
 
-    if (!startItem(item))
+    if (!startItem(item)) {
         ws.printfAll("error - could not start %s", (item.type == HTTP_PRESET) ? preset[item.index].url.c_str() : item.url.c_str());
+        return;
+    }
+
+    ESP_LOGD(TAG, "Bitrate: %ikbps", audio.bitrate());
 }
 
 void upDatePlaylistOnClients() {
