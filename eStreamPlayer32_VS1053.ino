@@ -189,7 +189,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                     pch = strtok(NULL, "\n");
                     while (pch) {
                         ESP_LOGD(TAG, "argument: %s", pch);
-                        playList.add({HTTP_FILE, "", pch});
+                        playList.add({HTTP_FILE, "", pch, 0});
                         pch = strtok(NULL, "\n");
                     }
                     const uint32_t itemsAdded{playList.size() - previousSize};
@@ -445,7 +445,7 @@ void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventTyp
                         while (pos < info->len) {
                             const String url = message.substring(pos, message.indexOf("\n", pos));
                             ESP_LOGD(TAG, "adding url: %s", url.c_str());
-                            playList.add({HTTP_FILE, "", url});
+                            playList.add({HTTP_FILE, "", url, 0});
                             pos += url.length() + 1;
                         }
                         message.clear();
@@ -548,9 +548,7 @@ void setup() {
     /* sync with ntp */
     configTzTime(TIMEZONE, NTP_POOL);
 
-    struct tm timeinfo {
-        0
-    };
+    struct tm timeinfo {};
 
     ESP_LOGI(TAG, "Waiting for NTP sync..");
 
@@ -820,7 +818,7 @@ void handlePastedUrl() {
 
     ESP_LOGI(TAG, "STARTING new url: %s with %i items in playList", newUrl.url.c_str(), playList.size());
 
-    playList.add({HTTP_STREAM, newUrl.url, newUrl.url});
+    playList.add({HTTP_STREAM, newUrl.url, newUrl.url, 0});
 
     if (!playList.isUpdated) {
         const String buffer = String(MESSAGE_HEADER) + "Could not add url.";
@@ -853,7 +851,7 @@ void handleFavoriteToPlaylist(const String& filename, const bool startNow) {
         ws.printfAll("%sCould not add '%s' to playlist", MESSAGE_HEADER, filename.c_str());
         return;
     }
-    playList.add({HTTP_FAVORITE, filename, url});
+    playList.add({HTTP_FAVORITE, filename, url, 0});
 
     if (!playList.isUpdated) return;
 
