@@ -41,7 +41,7 @@ But if you don't have a local music server you can still use eStreamPlayer to tu
 
 ### Setup
 
-Use [the latest ESP32 Arduino Core](https://github.com/espressif/arduino-esp32/releases/latest) to compile.
+Use ESP32 Arduino Core 1.0.6 to compile. Later versions have issues with HTTPClient.
 
 1.  Download and install [ESP_VS1053_Library](https://github.com/baldram/ESP_VS1053_Library/releases/latest), [ESP32_VS1053_Stream](https://github.com/CelliesProjects/ESP32_VS1053_Stream), [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) and  [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) in the Arduino libraries folder.
 2.  Download and unzip the [latest eStreamPlayer release](https://github.com/CelliesProjects/eStreamPlayer32_VS1053/releases/latest).
