@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.10";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -226,12 +226,12 @@ progress::-webkit-progress-value, progress::-moz-progress-bar  {
 #progress{
   position:relative;
   opacity:0;
-  top:-40px;
+  top:-20px;
 }
 #progress, #progress2{
   margin:0;
   width:90%;
-  height:40px;
+  height:20px;
 }
 </style>
 </head>
@@ -435,7 +435,7 @@ $(document).ready(function(){
       break;
 
       case "status":
-        if(command[1]=="paused")$('#playpause').html('<img class="icon" id="pausebutton" src="' + http_host + '/starticon.svg"</img>');
+        if(command[1]=="paused")$('#playpause').html('<img class="icon" id="playbutton" src="' + http_host + '/starticon.svg"</img>');
         if(command[1]=="playing")$('#playpause').html('<img class="icon" id="pausebutton" src="' + http_host + '/pauseicon.svg"></img>');
       break;
 /*
@@ -579,11 +579,11 @@ $(document).ready(function(){
   });
 
   $('body').on('click','#pausebutton',function(){
-    ws.send("pause\n");
+    ws.send("pause\n" + $('#progress').attr("value"));
   });
 
   $('body').on('click','#playbutton',function(){
-    ws.send("play\n");
+    ws.send("unpause\n");
   });
 
   $('body').on('click','#previousbutton',function(){
@@ -603,11 +603,11 @@ $(document).ready(function(){
   $('body').on('click','.streamlink',function(){
     ws.send("presetstation\n" + $(this).index());
   });
-
+/*
   $('#newurl').on('keydown', function(e) {
     if(e.which == 13)$('#newurlbutton').click();
   });
-
+*/
   $('body').on('click','#newurlbutton',function(){
     if(!$('#newurl').val())return;
 //    var newurl = ($('#newurl').val().startsWith('https:')) ? 'http' + $('#newurl').val().substring(5) : $('#newurl').val();
@@ -647,7 +647,7 @@ $(document).ready(function(){
 
   $('#progress').on('click touchend', function(e) {
     e.stopPropagation();
-    ws.send("resumefrom\n" + this.value)
+    ws.send("jumptopos\n" + this.value)
   });
 
   document.addEventListener('visibilitychange', e =>{
