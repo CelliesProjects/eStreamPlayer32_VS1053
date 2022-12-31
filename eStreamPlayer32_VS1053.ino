@@ -90,7 +90,7 @@ void playerTask(void* parameter) {
 //                                   H E L P E R - R O U T I N E S                       *
 //****************************************************************************************
 
-#define MAX_STATIONNAME_LENGTH 50
+#define MAX_STATIONNAME_LENGTH 100
 
 void startItem(uint8_t const index, size_t offset = 0) {
     updateCurrentItemOnClients();
@@ -144,7 +144,7 @@ void upDatePlaylistOnClients() {
     updateCurrentItemOnClients();
 }
 
-bool saveItemToFavorites(const playListItem& item, const char* filename, AsyncWebSocketClient* client) {
+bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, const playListItem& item) {
     if (!strlen(filename)) {
         log_e("ERROR! no filename");
         return false;
@@ -187,10 +187,10 @@ bool saveItemToFavorites(const playListItem& item, const char* filename, AsyncWe
     }
 }
 
-void handleFavoriteToPlaylist(const char* filename, const bool startNow) {
+void handleFavoriteToPlaylist(AsyncWebSocketClient* client, const char* filename, const bool startNow) {
     if (PLAYLIST_MAX_ITEMS == playList.size()) {
         log_e("ERROR! Could not add %s to playlist", filename);
-        ws.printfAll("%s\nCould not add '%s' to playlist", MESSAGE_HEADER, filename);
+        client->printf("%s\nCould not add '%s' to playlist", MESSAGE_HEADER, filename);
         return;
     }
     char path[strlen(FAVORITES_FOLDER) + strlen(filename) + 1];
@@ -198,7 +198,7 @@ void handleFavoriteToPlaylist(const char* filename, const bool startNow) {
     File file = FFat.open(path);
     if (!file) {
         log_e("ERROR! Could not open %s", filename);
-        ws.printfAll("%s\nCould not add '%s' to playlist", MESSAGE_HEADER, filename);
+        client->printf("%s\nCould not add '%s' to playlist", MESSAGE_HEADER, filename);
         return;
     }
     char url[file.size() + 1];
@@ -214,7 +214,7 @@ void handleFavoriteToPlaylist(const char* filename, const bool startNow) {
     playList.add({ HTTP_FAVORITE, filename, url, 0 });
 
     log_d("favorite to playlist: %s -> %s", filename, url);
-    ws.printfAll("%s\nAdded '%s' to playlist", MESSAGE_HEADER, filename);
+    client->printf("%s\nAdded '%s' to playlist", MESSAGE_HEADER, filename);
 
     if (startNow || playList.currentItem() == PLAYLIST_STOPPED) {
         playList.setCurrentItem(previousSize);

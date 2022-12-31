@@ -171,7 +171,6 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
         log_d("Playlist cleared");
         playlistHasEnded();
         upDatePlaylistOnClients();
-
     }
 
     else if (!strcmp("presetstation", pch) || !strcmp("_presetstation", pch)) {
@@ -225,7 +224,7 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
         if (!pch) return;
         playListItem item;
         playList.get(playList.currentItem(), item);
-        if (saveItemToFavorites(item, pch, client)) {
+        if (saveItemToFavorites(client, pch, item)) {
             String s;
             ws.textAll(favoritesToString(s));
         } else
@@ -240,7 +239,7 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
             client->printf("%s\nCould not add '%s' to playlist!", MESSAGE_HEADER, pch);
             return;
         }
-        handleFavoriteToPlaylist(pch, startNow);
+        handleFavoriteToPlaylist(client, pch, startNow);
         upDatePlaylistOnClients();
     }
 
