@@ -90,14 +90,14 @@ void playerTask(void* parameter) {
 //                                   H E L P E R - R O U T I N E S                       *
 //****************************************************************************************
 
-#define MAX_STATIONNAME_LENGTH 100
+#define MAX_STATION_NAME_LENGTH 100
 
 void startItem(uint8_t const index, size_t offset = 0) {
     updateCurrentItemOnClients();
     audio_showstreamtitle("");
     playListItem item;
     playList.get(index, item);
-    char name[MAX_STATIONNAME_LENGTH];
+    char name[MAX_STATION_NAME_LENGTH];
     switch (item.type) {
         case HTTP_FILE:
             snprintf(name, sizeof(name), "%s", item.url.substring(item.url.lastIndexOf('/') + 1).c_str());
@@ -267,7 +267,7 @@ const String& favoritesToCStruct(String& s) {
 }
 
 //****************************************************************************************
-//                                   W E B S E R V E R                                   *
+//                                   S E T U P                                           *
 //****************************************************************************************
 
 const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
@@ -276,7 +276,61 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
     return request->hasHeader(HEADER_MODIFIED_SINCE) && request->header(HEADER_MODIFIED_SINCE).equals(date);
 }
 
-void setupWebserver() {
+void setup() {
+    log_i("\n\n\t\t\t\t%s\n", VERSION_STRING);
+    log_i("CPU: %iMhz", getCpuFrequencyMhz());
+    log_d("Heap: %d", ESP.getHeapSize());
+    log_d("Free: %d", ESP.getFreeHeap());
+    log_d("PSRAM: %d", ESP.getPsramSize());
+    log_d("Free: %d", ESP.getFreePsram());
+    log_i("Found %i presets", sizeof(preset) / sizeof(source));
+
+    /* check if a ffat partition is defined and halt the system if it is not defined*/
+    if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
+        log_e("FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
+        while (true) delay(1000); /* system is halted */
+    }
+
+    /* partition is defined - try to mount it */
+    if (FFat.begin(0, "", 2))  // see: https://github.com/lorol/arduino-esp32fs-plugin#notes-for-fatfs
+        log_i("FFat mounted");
+
+    /* partition is present, but does not mount so now we just format it */
+    else {
+        log_i("Formatting FFat...");
+        if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
+            log_e("FFat error while formatting. Halting.");
+            while (true) delay(1000); /* system is halted */
+        }
+    }
+
+    btStop();
+
+    if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS)) {
+        log_e("Setting static IP failed");
+    }
+    WiFi.begin(SSID, PSK);
+    WiFi.setSleep(false);
+    log_i("Connecting to %s...", SSID);
+
+    playerQueue = xQueueCreate(5, sizeof(struct playerMessage));
+
+    if (!playerQueue) {
+        log_e("Could not create queue. System halted.");
+        while (true) delay(100);
+    }
+
+    WiFi.waitForConnectResult();
+
+    if (!WiFi.isConnected()) {
+        log_e("Could not connect to Wifi! System halted! Check 'system_setup.h'!");
+        while (true) delay(1000); /* system is halted */
+    }
+
+    log_i("WiFi connected - IP %s", WiFi.localIP().toString().c_str());
+
+    const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
+
     configTzTime(TIMEZONE, NTP_POOL);
 
     struct tm timeinfo {};
@@ -287,6 +341,10 @@ void setupWebserver() {
         delay(10);
 
     log_i("Synced");
+
+    //****************************************************************************************
+    //                                   W E B S E R V E R                                   *
+    //****************************************************************************************
 
     time_t bootTime;
     time(&bootTime);
@@ -415,67 +473,8 @@ void setupWebserver() {
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
     server.begin();
-    log_i("Webserver running");
-}
+    log_i("Webserver started");
 
-//****************************************************************************************
-//                                   S E T U P                                           *
-//****************************************************************************************
-
-void setup() {
-    log_i("\n\n\t\t\t\t%s\n", VERSION_STRING);
-    log_i("CPU: %iMhz", getCpuFrequencyMhz());
-    log_d("Heap: %d", ESP.getHeapSize());
-    log_d("Free: %d", ESP.getFreeHeap());
-    log_d("PSRAM: %d", ESP.getPsramSize());
-    log_d("Free: %d", ESP.getFreePsram());
-    log_i("Found %i presets", sizeof(preset) / sizeof(source));
-
-    /* check if a ffat partition is defined and halt the system if it is not defined*/
-    if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
-        log_e("FATAL ERROR! No FFat partition defined. System is halted.\nCheck 'Tools>Partition Scheme' in the Arduino IDE and select a partition table with a FFat partition.");
-        while (true) delay(1000); /* system is halted */
-    }
-
-    /* partition is defined - try to mount it */
-    if (FFat.begin(0, "", 2))  // see: https://github.com/lorol/arduino-esp32fs-plugin#notes-for-fatfs
-        log_i("FFat mounted");
-
-    /* partition is present, but does not mount so now we just format it */
-    else {
-        log_i("Formatting FFat...");
-        if (!FFat.format(true, (char*)"ffat") || !FFat.begin(0, "", 2)) {
-            log_e("FFat error while formatting. Halting.");
-            while (true) delay(1000); /* system is halted */
-        }
-    }
-
-    btStop();
-
-    if (SET_STATIC_IP && !WiFi.config(STATIC_IP, GATEWAY, SUBNET, PRIMARY_DNS, SECONDARY_DNS)) {
-        log_e("Setting static IP failed");
-    }
-    WiFi.begin(SSID, PSK);
-    WiFi.setSleep(false);
-    log_i("Connecting to %s...", SSID);
-
-    playerQueue = xQueueCreate(5, sizeof(struct playerMessage));
-
-    if (!playerQueue) {
-        log_e("Could not create queue. System halted.");
-        while (true) delay(100);
-    }
-
-    WiFi.waitForConnectResult();
-
-    if (!WiFi.isConnected()) {
-        log_e("Could not connect to Wifi! System halted! Check 'system_setup.h'!");
-        while (true) delay(1000); /* system is halted */
-    }
-
-    log_i("WiFi connected - IP %s", WiFi.localIP().toString().c_str());
-
-    setupWebserver();
     ws.onEvent(websocketEventHandler);
     server.addHandler(&ws);
 
@@ -506,7 +505,6 @@ void setup() {
 //                                   L O O P                                             *
 //****************************************************************************************
 
-
 void loop() {
 }
 
@@ -514,7 +512,7 @@ void loop() {
 //                                  E V E N T S                                           *
 //*****************************************************************************************
 
-static char showstation[MAX_STATIONNAME_LENGTH];
+static char showstation[MAX_STATION_NAME_LENGTH];
 void audio_showstation(const char* info) {
     playListItem item;
     playList.get(playList.currentItem(), item);
