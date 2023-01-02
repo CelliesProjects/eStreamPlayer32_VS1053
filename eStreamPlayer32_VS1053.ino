@@ -482,7 +482,7 @@ void setup() {
     const BaseType_t result = xTaskCreatePinnedToCore(
         playerTask,            /* Function to implement the task */
         "playerTask",          /* Name of the task */
-        8000,                  /* Stack size in BYTES! */
+        10000,                 /* Stack size in BYTES! */
         NULL,                  /* Task input parameter */
         3 | portPRIVILEGE_BIT, /* Priority of the task */
         NULL,                  /* Task handle. */
