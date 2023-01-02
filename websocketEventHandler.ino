@@ -175,8 +175,10 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
 
     else if (!strcmp("presetstation", pch) || !strcmp("_presetstation", pch)) {
         const bool startnow = (pch[0] == '_');
-        const uint32_t index = atoi(strtok(NULL, "\n"));
-        if (index >= sizeof(preset) / sizeof(source)) return;
+        pch = strtok(NULL, "\n");
+        if (!pch) return;
+        const uint32_t index = atoi(pch);
+        if (index >= NUMBER_OF_PRESETS) return;
 
         const uint32_t previousSize = playList.size();
         playList.add({ HTTP_PRESET, "", "", index });
