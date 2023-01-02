@@ -35,6 +35,8 @@ static const char* CURRENT_HEADER = "currentPLitem";
 static auto _playerVolume = VS1053_INITIALVOLUME;
 static bool _paused = false;
 
+constexpr const auto NUMBER_OF_PRESETS = sizeof(preset) / sizeof(source);
+
 //****************************************************************************************
 //                                   P L A Y E R _ T A S K                               *
 //****************************************************************************************
@@ -283,7 +285,7 @@ void setup() {
     log_d("Free: %d", ESP.getFreeHeap());
     log_d("PSRAM: %d", ESP.getPsramSize());
     log_d("Free: %d", ESP.getFreePsram());
-    log_i("Found %i presets", sizeof(preset) / sizeof(source));
+    log_i("Found %i presets", NUMBER_OF_PRESETS);
 
     /* check if a ffat partition is defined and halt the system if it is not defined*/
     if (!esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, "ffat")) {
@@ -329,8 +331,6 @@ void setup() {
 
     log_i("WiFi connected - IP %s", WiFi.localIP().toString().c_str());
 
-    const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
-
     configTzTime(TIMEZONE, NTP_POOL);
 
     struct tm timeinfo {};
@@ -352,6 +352,7 @@ void setup() {
     strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
 
     static const char* HTML_MIMETYPE{ "text/html" };
+    //static const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
     static const char* HEADER_LASTMODIFIED{ "Last-Modified" };
     static const char* HEADER_CONTENT_ENCODING{ "Content-Encoding" };
     static const char* GZIP_CONTENT_ENCODING{ "gzip" };
@@ -380,9 +381,9 @@ void setup() {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
         AsyncResponseStream* const response = request->beginResponseStream(HTML_MIMETYPE);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
-        for (int i = 0; i < sizeof(preset) / sizeof(source); i++) {
-            response->printf("%s\n", preset[i].name.c_str());
-        }
+        auto i = 0;
+        while (i < NUMBER_OF_PRESETS)
+            response->printf("%s\n", preset[i++].name.c_str());
         request->send(response);
     });
 
@@ -481,7 +482,7 @@ void setup() {
     const BaseType_t result = xTaskCreatePinnedToCore(
         playerTask,            /* Function to implement the task */
         "playerTask",          /* Name of the task */
-        5000,                  /* Stack size in BYTES! */
+        8000,                  /* Stack size in BYTES! */
         NULL,                  /* Task input parameter */
         3 | portPRIVILEGE_BIT, /* Priority of the task */
         NULL,                  /* Task handle. */
