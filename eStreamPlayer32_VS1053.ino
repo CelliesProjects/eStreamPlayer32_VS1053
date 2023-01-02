@@ -352,7 +352,6 @@ void setup() {
     strftime(modifiedDate, sizeof(modifiedDate), "%a, %d %b %Y %X GMT", gmtime(&bootTime));
 
     static const char* HTML_MIMETYPE{ "text/html" };
-    //static const char* HEADER_MODIFIED_SINCE = "If-Modified-Since";
     static const char* HEADER_LASTMODIFIED{ "Last-Modified" };
     static const char* HEADER_CONTENT_ENCODING{ "Content-Encoding" };
     static const char* GZIP_CONTENT_ENCODING{ "gzip" };
@@ -389,6 +388,7 @@ void setup() {
 
     server.on("/favorites", HTTP_GET, [](AsyncWebServerRequest* request) {
         AsyncResponseStream* const response = request->beginResponseStream("text/plain");
+        response->addHeader("Cache-Control", "no-cache,no-store,must-revalidate,max-age=0");
         String s;
         response->print(favoritesToCStruct(s));
         request->send(response);
