@@ -30,7 +30,7 @@ const source preset[]{
     { "DI Radio Digital Impulse - Techno", "http://148.251.43.231:8938/stream" },
     { "DI Radio Digital Impulse - House", "http://148.251.43.231:8986/stream" },
     { "DI Radio Digital Impulse - DKR TecHouse", "http://148.251.43.231:8243/stream" },
-    { "Tekno1", "http://tekno1.radioca.st/" },
+    { "Tekno1", "http://espace.tekno1.fr/tekno1.m3u" },
     { "Extreme Deep House Radio", "http://79.98.108.170:8117/stream/1/" },
     { "BollyHits Radio", "http://hoth.alonhosting.com:1080/stream/1/" },
 };
