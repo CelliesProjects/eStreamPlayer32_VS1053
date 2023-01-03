@@ -232,7 +232,7 @@ const String& favoritesToString(String& s) {
     File file = folder.openNextFile();
     while (file) {
         if (!file.isDirectory() && file.size() < PLAYLIST_MAX_URL_LENGTH) {
-            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+            s.concat(file.name());
             s.concat("\n");
         }
         file = folder.openNextFile();
@@ -251,7 +251,7 @@ const String& favoritesToCStruct(String& s) {
     while (file) {
         if (!file.isDirectory() && file.size() < PLAYLIST_MAX_URL_LENGTH) {
             s.concat("    {\"");
-            s.concat(file.name()[0] == '/' ? &file.name()[1] : file.name()); /* until esp32 core 1.6.0 'file.name()' included the preceding slash */
+            s.concat(file.name());
             s.concat("\", \"");
             char ch = (char)file.read();
             while (file.available() && ch != '\n') {
