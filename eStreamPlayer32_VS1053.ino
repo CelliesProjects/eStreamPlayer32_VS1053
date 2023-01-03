@@ -92,30 +92,28 @@ void playerTask(void* parameter) {
 //                                   H E L P E R - R O U T I N E S                       *
 //****************************************************************************************
 
-#define MAX_STATION_NAME_LENGTH 100
-
 void startItem(uint8_t const index, size_t offset = 0) {
     updateCurrentItemOnClients();
     audio_showstreamtitle("");
-    playListItem item;
-    playList.get(index, item);
-    char name[MAX_STATION_NAME_LENGTH];
-    switch (item.type) {
-        case HTTP_FILE:
-            snprintf(name, sizeof(name), "%s", item.url.substring(item.url.lastIndexOf('/') + 1).c_str());
-            audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf('/')).c_str());
-            break;
-        case HTTP_PRESET:
-            snprintf(name, sizeof(name), "%s", preset[item.index].name.c_str());
-            break;
-        default: snprintf(name, sizeof(name), "%s", item.name.c_str());
-    }
-    audio_showstation(name);
+
     playerMessage msg;
     msg.action = playerMessage::CONNECTTOHOST;
     msg.value = offset;
     snprintf(msg.url, sizeof(msg.url), "%s", playList.url(index).c_str());
     xQueueSend(playerQueue, &msg, portMAX_DELAY);
+
+    playListItem item;
+    playList.get(index, item);
+    switch (item.type) {
+        case HTTP_FILE:
+            audio_showstation(item.url.substring(item.url.lastIndexOf('/') + 1).c_str());
+            audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf('/')).c_str());
+            break;
+        case HTTP_PRESET:
+            audio_showstation(preset[item.index].name.c_str());
+            break;
+        default: audio_showstation(item.name.c_str());
+    }
 }
 
 void startNextItem() {
@@ -513,6 +511,7 @@ void loop() {
 //                                  E V E N T S                                           *
 //*****************************************************************************************
 
+#define MAX_STATION_NAME_LENGTH 100
 static char showstation[MAX_STATION_NAME_LENGTH];
 void audio_showstation(const char* info) {
     playListItem item;
