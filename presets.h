@@ -6,12 +6,12 @@ struct source {
 // https://hendrikjansen.nl/henk/streaming.html
 
 const source preset[]{
-    { "NPO Radio1", "http://icecast.omroep.nl/radio1-bb-mp3" },
-    { "NPO Radio2", "http://icecast.omroep.nl/radio2-bb-mp3" },
-    { "NPO Radio2 Soul&Jazz", "http://icecast.omroep.nl/radio6-bb-mp3" },
-    { "NPO 3FM", "http://icecast.omroep.nl/3fm-bb-mp3" },
-    { "NPO Radio4", "http://icecast.omroep.nl/radio4-bb-mp3" },
-    { "NPO Radio5", "http://icecast.omroep.nl/radio5-bb-mp3" },
+    { "NPO Radio1", "http://icecast.omroep.nl/radio1-bb-aac" },
+    { "NPO Radio2", "http://icecast.omroep.nl/radio2-bb-aac" },
+    { "NPO Radio2 Soul&Jazz", "http://icecast.omroep.nl/radio6-bb-aac" },
+    { "NPO 3FM", "http://icecast.omroep.nl/3fm-bb-aac" },
+    { "NPO Radio4", "http://icecast.omroep.nl/radio4-bb-aac" },
+    { "NPO Radio5", "http://icecast.omroep.nl/radio5-bb-aac" },
     { "538 Dance Department", "http://playerservices.streamtheworld.com/api/livestream-redirect/TLPSTR01.mp3" },
     { "Absoluut FM", "http://absoluutfm.stream.laut.fm/absoluutfm" },
     { "Amsterdam Funk Channel", "http://stream.afc.fm:8504/stream" },
