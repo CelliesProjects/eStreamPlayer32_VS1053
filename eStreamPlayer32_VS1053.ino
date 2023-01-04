@@ -107,24 +107,21 @@ void startItem(uint8_t const index, size_t offset = 0) {
     switch (item.type) {
         case HTTP_FILE:
             {
-                char name[item.url.length() - item.url.lastIndexOf('/')];
-                auto pos = item.url.lastIndexOf('/') + 1;
+                {
+                    char name[item.url.length() - item.url.lastIndexOf('/')];
+                    auto pos = item.url.lastIndexOf('/') + 1;
+                    auto cnt = 0;
+                    while (pos < item.url.length())
+                        name[cnt++] = item.url.charAt(pos++);
+                    name[cnt] = 0;
+                    audio_showstation(name);
+                }
+                char path[item.url.lastIndexOf('/') + 1];
+                auto pos = 0;
                 auto cnt = 0;
-                while (pos < item.url.length()) {
-                    name[cnt++] = item.url.charAt(pos++);
-                }
-                name[cnt] = 0;
-                log_d("name: %s", name);
-                audio_showstation(name);
-
-                char path[item.url.lastIndexOf('/')];
-                pos = 0;
-                cnt = 0;
-                while (pos < item.url.lastIndexOf('/')) {
+                while (pos < item.url.lastIndexOf('/'))
                     path[cnt++] = item.url.charAt(pos++);
-                }
-                path[cnt] = 0;
-                log_i("path: %s", path);
+                path[pos] = 0;
                 audio_showstreamtitle(path);
             }
             break;
