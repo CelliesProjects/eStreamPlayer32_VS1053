@@ -264,9 +264,15 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
 }
 
 void handleMultiFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len, AwsFrameInfo* info) {
-    static String message = "";
+    static String message;
+    /*
+    if (info->index == 0 && info->num == 0) {
+        log_i("First multi frame arrived");
+        //TODO: check here for the correct clientid
+    }
+*/
 
-    //TODO: check here for the correct clientid
+    message.reserve(info->index + len);
 
     auto cnt = 0;
     while (cnt < len)
@@ -278,15 +284,20 @@ void handleMultiFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len, A
             const bool startnow = (message[0] == '_');
             const uint32_t previousSize = playList.size();
 
-            int pos = message.indexOf("\n");
+            auto pos = message.indexOf("\n");
             if (-1 == pos) return;
             pos++;
 
             while (pos < info->len) {
                 char url[PLAYLIST_MAX_URL_LENGTH];
-                snprintf(url, sizeof(url), message.substring(pos, message.indexOf("\n", pos)).c_str());
+                auto cnt = 0;
+                while (message.charAt(pos) != '\n') {
+                    url[cnt++] = message.charAt(pos++);
+                    if (pos == info->len) return;
+                }
+                url[cnt] = 0;
                 playList.add({ HTTP_FILE, "", url, 0 });
-                pos += strlen(url) + 1;
+                pos++;
             }
 
             const uint32_t itemsAdded{ playList.size() - previousSize };
