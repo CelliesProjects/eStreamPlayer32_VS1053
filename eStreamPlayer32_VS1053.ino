@@ -106,8 +106,27 @@ void startItem(uint8_t const index, size_t offset = 0) {
     playList.get(index, item);
     switch (item.type) {
         case HTTP_FILE:
-            audio_showstation(item.url.substring(item.url.lastIndexOf('/') + 1).c_str());
-            audio_showstreamtitle(item.url.substring(0, item.url.lastIndexOf('/')).c_str());
+            {
+                char name[item.url.length() - item.url.lastIndexOf('/')];
+                auto pos = item.url.lastIndexOf('/') + 1;
+                auto cnt = 0;
+                while (pos < item.url.length()) {
+                    name[cnt++] = item.url.charAt(pos++);
+                }
+                name[cnt] = 0;
+                log_d("name: %s", name);
+                audio_showstation(name);
+
+                char path[item.url.lastIndexOf('/')];
+                pos = 0;
+                cnt = 0;
+                while (pos < item.url.lastIndexOf('/')) {
+                    path[cnt++] = item.url.charAt(pos++);
+                }
+                path[cnt] = 0;
+                log_i("path: %s", path);
+                audio_showstreamtitle(path);
+            }
             break;
         case HTTP_PRESET:
             audio_showstation(preset[item.index].name.c_str());
