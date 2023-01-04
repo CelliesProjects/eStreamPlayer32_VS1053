@@ -527,7 +527,7 @@ void loop() {
 //                                  E V E N T S                                           *
 //*****************************************************************************************
 
-#define MAX_STATION_NAME_LENGTH 100
+#define MAX_STATION_NAME_LENGTH 200
 static char showstation[MAX_STATION_NAME_LENGTH];
 void audio_showstation(const char* info) {
     playListItem item;
