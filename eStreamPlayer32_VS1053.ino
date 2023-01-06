@@ -58,6 +58,7 @@ void playerTask(void* parameter) {
     while (true) {
         playerMessage msg;
         if (xQueueReceive(playerQueue, &msg, pdMS_TO_TICKS(25)) == pdPASS) {
+            log_d("Minimum free stack bytes: %i", uxTaskGetStackHighWaterMark(NULL));
             switch (msg.action) {
                 case playerMessage::SET_VOLUME:
                     audio.setVolume(msg.value);
@@ -496,7 +497,7 @@ void setup() {
     const BaseType_t result = xTaskCreatePinnedToCore(
         playerTask,            /* Function to implement the task */
         "playerTask",          /* Name of the task */
-        10000,                 /* Stack size in BYTES! */
+        8000,                  /* Stack size in BYTES! */
         NULL,                  /* Task input parameter */
         3 | portPRIVILEGE_BIT, /* Priority of the task */
         NULL,                  /* Task handle. */

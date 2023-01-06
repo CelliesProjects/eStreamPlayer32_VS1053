@@ -44,6 +44,7 @@ void websocketEventHandler(AsyncWebSocket* server, AsyncWebSocketClient* client,
     }
     ws.cleanupClients();
     log_d("Heap: %d Free: ", ESP.getHeapSize(), ESP.getFreeHeap());
+    log_d("Minimum free stack bytes: %i", uxTaskGetStackHighWaterMark(NULL));
 }
 
 void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) {
@@ -94,6 +95,7 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
     }
 
     else if (!strcmp("next", pch)) {
+        if (playList.currentItem() == PLAYLIST_STOPPED) return;
         if (playList.currentItem() < playList.size() - 1) {
             startNextItem();
         }
