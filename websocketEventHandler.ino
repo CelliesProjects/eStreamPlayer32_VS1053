@@ -44,7 +44,8 @@ void websocketEventHandler(AsyncWebSocket* server, AsyncWebSocketClient* client,
     }
     ws.cleanupClients();
     log_d("Heap: %d Free: ", ESP.getHeapSize(), ESP.getFreeHeap());
-    log_d("Minimum free stack bytes: %i", uxTaskGetStackHighWaterMark(NULL));
+    log_d("Smallest free stack: %i bytes", uxTaskGetStackHighWaterMark(NULL));
+    log_d("Largest free continuous memory block: %i bytes", heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT));
 }
 
 void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) {
