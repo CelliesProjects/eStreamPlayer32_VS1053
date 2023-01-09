@@ -25,10 +25,7 @@ struct playListItem {
 class playList_t {
 
   public:
-    playList_t() {
-        log_d("allocating %i items", PLAYLIST_MAX_ITEMS);
-        list.reserve(PLAYLIST_MAX_ITEMS);
-    }
+    playList_t(){};
     ~playList_t() {
         list.clear();
     }
