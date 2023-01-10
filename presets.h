@@ -3,8 +3,6 @@ struct source {
     const String url;
 };
 
-// https://hendrikjansen.nl/henk/streaming.html
-
 const source preset[]{
     { "NPO Radio1", "http://icecast.omroep.nl/radio1-bb-aac" },
     { "NPO Radio2", "http://icecast.omroep.nl/radio2-bb-aac" },

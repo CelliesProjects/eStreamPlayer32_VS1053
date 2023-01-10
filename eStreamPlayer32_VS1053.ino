@@ -52,7 +52,6 @@ void playerTask(void* parameter) {
         log_e("VS1053 board could not init\nSystem halted");
         while (true) delay(100);
     }
-    playlistHasEnded();
 
     log_i("Ready to rock!");
     while (true) {
@@ -81,8 +80,8 @@ void playerTask(void* parameter) {
         static unsigned long previousTime = millis();
         static size_t previousPosition = 0;
         if (ws.count() && audio.size() && millis() - previousTime > UPDATE_INTERVAL_MS && audio.position() != previousPosition) {
-            previousTime = millis();
             ws.printfAll("progress\n%i\n%i\n", audio.position(), audio.size());
+            previousTime = millis();
             previousPosition = audio.position();
         }
         audio.loop();
@@ -488,11 +487,12 @@ void setup() {
 
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
-    server.begin();
-    log_i("Webserver started");
+    playlistHasEnded(); /* before the webserver starts! */
 
+    server.begin();
     ws.onEvent(websocketEventHandler);
     server.addHandler(&ws);
+    log_i("Webserver started");
 
     const BaseType_t result = xTaskCreatePinnedToCore(
         playerTask,            /* Function to implement the task */
