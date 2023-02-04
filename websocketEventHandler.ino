@@ -1,22 +1,19 @@
-void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len);
-void handleMultiFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len, AwsFrameInfo* info);
-
 void websocketEventHandler(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type, void* arg, uint8_t* data, size_t len) {
     switch (type) {
         case WS_EVT_CONNECT:
             {
                 log_d("client %i connected on %s", client->id(), server->url());
-                {
-                    String s;
-                    client->text(playList.toString(s));
-                    s.clear();
-                    favoritesToString(s);
-                    client->text(!s.equals("") ? s : "favorites\nThe folder '" + String(FAVORITES_FOLDER) + "' could not be found!\n");
-                }
+                client->printf("status\n%s\n", _paused ? "paused" : "playing");
                 client->printf("%s\n%i\n", CURRENT_HEADER, playList.currentItem());
                 client->printf("%s\n%i\n", VOLUME_HEADER, _playerVolume);
                 client->text(showstation);
                 client->text(streamtitle);
+
+                String s;
+                client->text(playList.toString(s));
+                s.clear();
+                favoritesToString(s);
+                client->text(!s.equals("") ? s : "favorites\nThe folder '" + String(FAVORITES_FOLDER) + "' could not be found!\n");
             }
             break;
         case WS_EVT_DISCONNECT:
