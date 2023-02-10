@@ -15,6 +15,7 @@ void websocketEventHandler(AsyncWebSocket* server, AsyncWebSocketClient* client,
                 client->printf("%s\n%i\n", VOLUME_HEADER, _playerVolume);
                 client->text(showstation);
                 client->text(streamtitle);
+                if (_paused && _currentSize) client->printf("progress\n%i\n%i\n", _currentPosition, _currentSize);
             }
             break;
         case WS_EVT_DISCONNECT:

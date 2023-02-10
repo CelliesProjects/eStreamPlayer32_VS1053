@@ -33,6 +33,8 @@ static const char* MESSAGE_HEADER = "message";
 static const char* CURRENT_HEADER = "currentPLitem";
 
 static auto _playerVolume = VS1053_INITIALVOLUME;
+static size_t _currentPosition = 0;
+static size_t _currentSize = 0;
 static bool _paused = false;
 
 constexpr const auto NUMBER_OF_PRESETS = sizeof(preset) / sizeof(source);
@@ -68,6 +70,8 @@ void playerTask(void* parameter) {
                     ws.textAll("status\nplaying\n");
                     if (!audio.connecttohost(msg.url, LIBRARY_USER, LIBRARY_PWD, msg.value))
                         startNextItem();
+                    _currentSize = audio.size();
+                    _currentPosition = audio.position();
                     break;
                 case playerMessage::STOPSONG:
                     audio.stopSong();
@@ -75,6 +79,7 @@ void playerTask(void* parameter) {
                 default: log_e("error: unhandled audio action: %i", msg.action);
             }
         }
+
         constexpr const auto MAX_UPDATE_FREQ_HZ = 6;
         constexpr const auto UPDATE_INTERVAL_MS = 1000 / MAX_UPDATE_FREQ_HZ;
         static unsigned long previousTime = millis();
@@ -83,6 +88,7 @@ void playerTask(void* parameter) {
             ws.printfAll("progress\n%i\n%i\n", audio.position(), audio.size());
             previousTime = millis();
             previousPosition = audio.position();
+            _currentPosition = audio.position();
         }
         audio.loop();
     }
