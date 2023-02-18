@@ -1,4 +1,12 @@
-### Use notes
+## Use notes
 
 -  Copy this file to the root of your music collection.
--  Make sure your fileserver serves mp3 files with the correct MIME type in the `Content-Type` header which should be `Content-Type: audio/mpeg`
+-  Make sure your webserver serves files with the correct MIME type in the `Content-Type` header.
+
+Recognized `Content-Type` headers are:
+
+-  `audio/mpeg`
+-  `audio/ogg`
+-  `application/ogg`
+-  `audio/aac`
+-  `audio/aacp`
