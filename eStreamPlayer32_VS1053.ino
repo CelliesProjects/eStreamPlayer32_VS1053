@@ -10,7 +10,7 @@
 #include "icons.h"
 #include "system_setup.h"
 
-static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.0";
+static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.2";
 
 struct playerMessage {
     enum playerAction { SET_VOLUME,
