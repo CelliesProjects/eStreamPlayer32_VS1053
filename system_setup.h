@@ -12,7 +12,7 @@ const char* LIBRARY_USER = "";
 const char* LIBRARY_PWD = "";
 
 /* SCRIPT_URL should point to the php script on the music file server */
-const char* SCRIPT_URL = "http://192.168.0.108/eSP32_vs1053.php";
+const char* SCRIPT_URL = "http://192.168.0.50/music/eSP32_vs1053.php";
 
 /* If SET_STATIC_IP is set to true then STATIC_IP, GATEWAY, SUBNET and PRIMARY_DNS have to be set to some sane values */
 const bool SET_STATIC_IP = false;
