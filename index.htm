@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.101";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.20";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -101,7 +101,7 @@ a{
   right:0;
   left:50%;
 }
-#uplink,.folderlink,.sdfolderlink,.filelink,.streamlink,.plitem,.favoritelink,.errormessage{
+#uplink,.folderlink,.sdfolderlink,.filelink,.streamlink,.plitem,.favoritelink,.errormessage, #searchbar, .foundlink{
   background:grey;
   color:black;
   margin:2px 0;
@@ -111,6 +111,12 @@ a{
   overflow:hidden;
   white-space:nowrap;
   display:list-item;
+}
+#searchbar input {
+  height:30px;
+  vertical-align:middle;
+  margin:2px 5px;
+  border-radius:5px;
 }
 .foldericon,.icon{
   width:30px;
@@ -146,7 +152,7 @@ a{
   display:flex;
   margin:0;
 }
-#newurl{
+#searchpattern{
   height:100%;
   width:-webkit-fill-available;
   text-align:center;
@@ -157,7 +163,7 @@ a{
     width:-moz-available;
   }
 }
-#newurlbutton{
+.searchbutton{
   height:100%;
   padding:0 20px;
   font-size:20px;
@@ -201,7 +207,7 @@ a{
   color:inherit;
   opacity:0.93;
 }
-#overlay:hover, #progress{
+#progress{
   cursor:pointer;
 }
 #messageoverlay{
@@ -240,15 +246,25 @@ progress::-webkit-progress-value, progress::-moz-progress-bar  {
   width:90%;
   height:20px;
 }
+.tag {
+    border: solid 1px black;
+    width: fit-content;
+    height: auto;
+    white-space: nowrap;
+    padding: 2px 6px;
+    margin: 2px;
+    display: inline-block;
+}
 </style>
 </head>
 <body class="noselect">
 <p id="locationbar">&nbsp;</p>
 <div class="tab">
   <div id="tabbar">
-  <button class="tablinks" id="librarybutton"><img src="/libraryicon.svg" class="tabicon">LIBRARY</button>
-  <button class="tablinks" id="radiobutton"><img src="/radioicon.svg" class="tabicon">RADIO</button>
-  <button class="tablinks" id="favoritesbutton"><img src="/favoriteicon.svg" class="tabicon">ADDED</button>
+  <button class="tablinks" id="librarybutton"><img src="/libraryicon.svg" class="tabicon"></button>
+  <button class="tablinks" id="radiobutton"><img src="/radioicon.svg" class="tabicon"></button>
+  <button class="tablinks" id="favoritesbutton"><img src="/favoriteicon.svg" class="tabicon"></button>
+  <button class="tablinks" id="searchbutton"><img src="/searchicon.svg" class="tabicon"></button>
   </div>
 </div>
 <div id="PLAYLIST" class="tabcontent">
@@ -262,12 +278,15 @@ progress::-webkit-progress-value, progress::-moz-progress-bar  {
 <div id="FAVORITES" class="tabcontent">
   <p class="errormessage">Waiting for favorites...</p>
 </div>
+<div id="SEARCH" class="tabcontent">
+  <div id="items"></div>
+</div>
 <div id="overlay">
   <h3 id="showstation"></h3>
   <p id="streamtitle"></p>
   <p><progress id="progress2"></progress><input id="progress" type="range"></p>
 </div>
-<p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
+<p id="newurlbar"><input type="text" id="searchpattern" placeholder="Search for radio stations"><input class="searchbutton" id="namesearch" type="submit" value="Search name" onclick="getStations(searchpattern.value)"><input class="searchbutton" type="submit" value="Search tag" onclick="getTags(searchpattern.value)"></p>
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
@@ -370,6 +389,145 @@ function refreshAllTabs() {
     getPresets();
   })
 }
+
+// Set a different user agent, see: https://gist.github.com/thorsten/148812e9cc4fb6a19215ce22afd4e5a8
+function setUserAgent(window, userAgent) {
+    // Works on Firefox, Chrome, Opera and IE9+
+    if (navigator.__defineGetter__) {
+        navigator.__defineGetter__('userAgent', function () {
+            return userAgent;
+        });
+    } else if (Object.defineProperty) {
+        Object.defineProperty(navigator, 'userAgent', {
+            get: function () {
+                return userAgent;
+            }
+        });
+    }
+    // Works on Safari
+    if (window.navigator.userAgent !== userAgent) {
+        var userAgentProp = {
+            get: function () {
+                return userAgent;
+            }
+        };
+        try {
+            Object.defineProperty(window.navigator, 'userAgent', userAgentProp);
+        } catch (e) {
+            window.navigator = Object.create(navigator, {
+                userAgent: userAgentProp
+            });
+        }
+    }
+}
+
+/* see https://de1.api.radio-browser.info/ for api info */
+/*
+It is not possible to do a reverse DNS from a browser yet.
+The first part (a normal dns resolve) could be done from a browser by doing DOH (DNS over HTTPs)
+to one of the providers out there. (google, quad9,...)
+So we have to fallback to ask a single server for a list.
+*/
+
+/**
+ * Ask a specified server for a list of all other server.
+ */
+function get_radiobrowser_base_urls() {
+    return new Promise((resolve, reject)=>{
+        var request = new XMLHttpRequest()
+        // If you need https, please use the fixed server fr1.api.radio-browser.info for this request only
+        request.open('GET', 'http://all.api.radio-browser.info/json/servers', true);
+        request.onload = function() {
+            if (request.status >= 200 && request.status < 300){
+                var items = JSON.parse(request.responseText).map(x=>"https://" + x.name);
+                resolve(items);
+            }else{
+                reject(request.statusText);
+            }
+        }
+        request.send();
+    });
+}
+
+/**
+ * Ask a server for its settings.
+ */
+function get_radiobrowser_server_config(baseurl) {
+    return new Promise((resolve, reject)=>{
+        var request = new XMLHttpRequest()
+        request.open('GET', baseurl + '/json/config', true);
+        request.onload = function() {
+            if (request.status >= 200 && request.status < 300){
+                var items = JSON.parse(request.responseText);
+                resolve(items);
+            }else{
+                reject(request.statusText);
+            }
+        }
+        request.send();
+    });
+}
+
+/**
+ * Get a random available radio-browser server.
+ * Returns: string - base url for radio-browser api
+ */
+function get_radiobrowser_base_url_random() {
+    return get_radiobrowser_base_urls().then(hosts => {
+        var item = hosts[Math.floor(Math.random() * hosts.length)];
+        return item;
+    });
+}
+
+function getTags(tagname) {
+    var baseurl = '';
+    items.innerHTML = '';
+    if (!tagname) return;
+    get_radiobrowser_base_url_random().then((x)=>{
+        baseurl = x;
+        return get_radiobrowser_server_config(x);
+    }).then(config=>{
+        var params = 'offset=0&limit=100&hidebroken=true';
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", baseurl + '/json/tags/' + tagname);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+              const items = JSON.parse(xhr.responseText);
+              items.forEach(item => {
+                document.getElementById('items').innerHTML += '<p class="tag" title="' + item.stationcount + ' stations found">'+ item.name + '</p>';
+            });
+          }};
+        xhr.send(params);
+        searchbutton.click();
+        overlay.click();
+        searchpattern.value = '';
+    })
+};
+
+function getStations(tagname) {
+    var baseurl = '';
+    items.innerHTML = '';
+    if (!tagname) return;
+    get_radiobrowser_base_url_random().then((x)=>{
+        baseurl = x;
+        return get_radiobrowser_server_config(x);
+    }).then(config=>{
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", baseurl + '/json/stations/search?name=' + tagname + '&offset=0&limit=100&hidebroken=true');
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+              const items = JSON.parse(xhr.responseText);
+              items.forEach(item => {
+                  const title = 'URL: ' + item.url_resolved + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
+                  document.getElementById('items').innerHTML += '<p class="foundlink" data-url="'+ item.url +'" data-station-uuid="'+ item.stationuuid +'"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+ item.name + '</span></p>';
+            });
+          }};
+        xhr.send();
+        searchbutton.click();
+        overlay.click();
+        searchpattern.value = '';
+    })
+};
 
 $(document).ready(function(){
   const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
@@ -489,16 +647,20 @@ $(document).ready(function(){
     $(this).css("background-color", "darkgrey")
     switch($(this).attr('id')){
       case 'librarybutton':
-        $('#WEBRADIO, #FAVORITES').hide();
+        $('#WEBRADIO, #FAVORITES, #SEARCH').hide();
         $('#LIBRARY').show();
       break;
       case 'radiobutton':
-        $('#LIBRARY, #FAVORITES').hide();
+        $('#LIBRARY, #FAVORITES, #SEARCH').hide();
         $('#WEBRADIO').show();
       break;
       case 'favoritesbutton':
-        $('#LIBRARY, #WEBRADIO').hide();
+        $('#LIBRARY, #WEBRADIO, #SEARCH').hide();
         $('#FAVORITES').show();
+      break;
+      case 'searchbutton':
+        $('#LIBRARY, #WEBRADIO, #FAVORITES').hide();
+        $('#SEARCH').show();
       break;
       default:
     }
@@ -611,19 +773,8 @@ $(document).ready(function(){
     ws.send("presetstation\n" + $(this).index());
   });
 
-  $('#newurl').on('keydown', function(e) {
-    if(e.which == 13)$('#newurlbutton').click();
-  });
-
-  $('body').on('click','#newurlbutton',function(){
-    if (!$('#newurl').val())return;
-    if (!$('#newurl').val().startsWith('http')) {
-        alert("The pasted URL has to start with the protocol.\n\nLike this:\n\n     http://...     or     https://...");
-        return;
-    }
-    var newurl = $('#newurl').val();
-    ws.send("newurl\n" + newurl.trim());
-    $('#newurl').val('');
+  $('#searchpattern').on('keydown', function(e) {
+    if(e.which == 13)$('#namesearch').click();
   });
 
   $('#infobutton').on('mouseup', function(){
@@ -673,6 +824,17 @@ $(document).ready(function(){
 
   document.addEventListener('unload', (event) => {
     ws.close();
+  });
+
+  setUserAgent(window, "eStreamPlayer32 - https://github.com/CelliesProjects/eStreamPlayer32_VS1053");
+
+  document.querySelector("body").addEventListener('click', function(e) {
+    if (e.target.classList.contains('tag')) {
+          getStations(e.target.innerHTML);
+    }
+      else if (e.target.classList.contains('foundlink')) {
+          alert("Url: " + e.target.getAttribute('data-url'));
+      }
   });
 
   $('.tabcontent').css('top',$('.tab').height() + $('#locationbar').height() + "px");

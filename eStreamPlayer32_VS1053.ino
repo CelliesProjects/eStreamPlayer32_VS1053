@@ -10,7 +10,9 @@
 #include "icons.h"
 #include "system_setup.h"
 
-static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.2";
+static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.2"
+                                    "<br><br>"
+                                    "Search API provided by: <a href=\"https://www.radio-browser.info/\" target=\"_blank\">radio-browser.info</a>";
 
 struct playerMessage {
     enum playerAction { SET_VOLUME,
@@ -482,6 +484,13 @@ void setup() {
     server.on("/pauseicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
         AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, pauseicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
+    server.on("/searchicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, searchicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
