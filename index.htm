@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.20";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.101";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -479,33 +479,10 @@ function get_radiobrowser_base_url_random() {
     });
 }
 
-function getTags(tagname) {
-    var baseurl = '';
-    items.innerHTML = '';
-    if (!tagname) return;
-    get_radiobrowser_base_url_random().then((x)=>{
-        baseurl = x;
-        return get_radiobrowser_server_config(x);
-    }).then(config=>{
-        var params = 'offset=0&limit=100&hidebroken=true';
-        let xhr = new XMLHttpRequest();
-        xhr.open("POST", baseurl + '/json/tags/' + tagname);
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-              const items = JSON.parse(xhr.responseText);
-              items.forEach(item => {
-                document.getElementById('items').innerHTML += '<p class="tag" title="' + item.stationcount + ' stations found">'+ item.name + '</p>';
-            });
-          }};
-        xhr.send(params);
-        searchbutton.click();
-        overlay.click();
-        searchpattern.value = '';
-    })
-};
+var baseurl = '';
 
 function getStations(tagname) {
-    var baseurl = '';
+
     items.innerHTML = '';
     if (!tagname) return;
     get_radiobrowser_base_url_random().then((x)=>{
@@ -519,7 +496,7 @@ function getStations(tagname) {
               const items = JSON.parse(xhr.responseText);
               items.forEach(item => {
                   const title = 'URL: ' + item.url_resolved + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
-                  document.getElementById('items').innerHTML += '<p class="foundlink" data-url="'+ item.url +'" data-station-uuid="'+ item.stationuuid +'"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+ item.name + '</span></p>';
+                  document.getElementById('items').innerHTML += '<p class="foundlink" data-name="'+item.name+'" data-url="'+ item.url +'" data-station-uuid="'+ item.stationuuid +'"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+ item.name + '</span></p>';
             });
           }};
         xhr.send();
@@ -810,6 +787,24 @@ $(document).ready(function(){
     ws.send("jumptopos\n" + this.value)
   });
 
+  $('body').on('click','.foundlink',function(e){
+      e.stopPropagation();
+      ws.send("foundlink\n" + this.getAttribute('data-url') + '\n' + this.getAttribute('data-name'));
+      $.get(baseurl + '/json/url/' + this.getAttribute('data-station-uuid'), function(data) {console.log(data);});
+  });
+
+  $('body').on('click','.foundlink span.text',function(e){
+      e.stopPropagation();
+      ws.send("foundlink\n" + this.parentElement.getAttribute('data-url') + '\n' + this.parentElement.getAttribute('data-name'));
+      $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function(data) {console.log(data);});
+  });
+
+  $('body').on('click','.foundlink img.icon.starticon',function(e){
+      e.stopPropagation();
+      ws.send("_foundlink\n" + this.parentElement.getAttribute('data-url') + '\n' + this.parentElement.getAttribute('data-name'));
+      $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function(data) {console.log(data);});
+  });
+
   document.addEventListener('visibilitychange', e =>{
     switch (document.visibilityState) {
       case 'visible' :
@@ -827,15 +822,6 @@ $(document).ready(function(){
   });
 
   setUserAgent(window, "eStreamPlayer32 - https://github.com/CelliesProjects/eStreamPlayer32_VS1053");
-
-  document.querySelector("body").addEventListener('click', function(e) {
-    if (e.target.classList.contains('tag')) {
-          getStations(e.target.innerHTML);
-    }
-      else if (e.target.classList.contains('foundlink')) {
-          alert("Url: " + e.target.getAttribute('data-url'));
-      }
-  });
 
   $('.tabcontent').css('top',$('.tab').height() + $('#locationbar').height() + "px");
   $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");

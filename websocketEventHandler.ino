@@ -260,6 +260,25 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
         }
     }
 
+    else if (!strcmp("foundlink", pch) || !strcmp("_foundlink", pch)) {
+        if (playList.size() == PLAYLIST_MAX_ITEMS) {
+            client->printf("%s\nCould not add new url to playlist", MESSAGE_HEADER);
+            return;
+        }
+        const bool startnow = (pch[0] == '_');
+        const char* url = strtok(NULL, "\n");
+        if (!url) return;
+        const char* name = strtok(NULL, "\n");
+        if (!name) return;
+
+        playList.add({ HTTP_STREAM, name, url, 0 });
+        upDatePlaylistOnClients();
+        if (startnow || playList.currentItem() == PLAYLIST_STOPPED) {
+            playList.setCurrentItem(playList.size() - 1);
+            startItem(playList.currentItem());
+        }
+    }
+
     else {
         log_i("unhandled single frame ws event! %s", pch);
     }
