@@ -200,19 +200,6 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
 
     }
 
-    else if (!strcmp("newurl", pch)) {
-        if (playList.size() == PLAYLIST_MAX_ITEMS) {
-            client->printf("%s\nCould not add new url to playlist", MESSAGE_HEADER);
-            return;
-        }
-        pch = strtok(NULL, "\n");
-        if (!pch) return;
-        playList.add({ HTTP_STREAM, pch, pch, 0 });
-        playList.setCurrentItem(playList.size() - 1);
-        upDatePlaylistOnClients();
-        startItem(playList.currentItem());
-    }
-
     else if (!strcmp("jumptopos", pch)) {
         pch = strtok(NULL, "\n");
         if (!pch) return;
@@ -265,14 +252,14 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
             client->printf("%s\nCould not add new url to playlist", MESSAGE_HEADER);
             return;
         }
-        const bool startnow = (pch[0] == '_');
         const char* url = strtok(NULL, "\n");
         if (!url) return;
         const char* name = strtok(NULL, "\n");
         if (!name) return;
 
-        playList.add({ HTTP_STREAM, name, url, 0 });
+        playList.add({ HTTP_FOUND, name, url, 0 });
         upDatePlaylistOnClients();
+        const bool startnow = (pch[0] == '_');
         if (startnow || playList.currentItem() == PLAYLIST_STOPPED) {
             playList.setCurrentItem(playList.size() - 1);
             startItem(playList.currentItem());
@@ -286,15 +273,6 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
 
 void handleMultiFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len, AwsFrameInfo* info) {
     static String message;
-    /*
-    if (info->index == 0 && info->num == 0) {
-        log_i("First multi frame arrived");
-        //TODO: check here for the correct clientid
-    }
-*/
-
-    message.reserve(info->index + len);
-
     auto cnt = 0;
     while (cnt < len)
         message.concat((char)data[cnt++]);

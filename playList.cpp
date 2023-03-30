@@ -14,7 +14,7 @@ String& playList_t::toString(String& s) {
                     s.concat(preset[item.index].name + "\n" + typeStr[item.type] + "\n");
                     break;
 
-                case HTTP_STREAM:
+                case HTTP_FOUND:
                 case HTTP_FAVORITE:
                     s.concat(item.name + "\n" + typeStr[item.type] + "\n");
                     break;

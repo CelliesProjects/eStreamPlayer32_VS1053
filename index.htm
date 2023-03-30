@@ -3,7 +3,7 @@
 <head>
 <script>
 //setting for dev/debug */
-const debugip="192.168.0.101";  //change this to the esp32 ip for remote running of this page
+const debugip="192.168.0.104";  //change this to the esp32 ip for remote running of this page
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -125,7 +125,7 @@ a{
   margin:2px 5px;
   border-radius:5px;
 }
-.foldericon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover{
+.foldericon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover, .foundlink:hover{
   cursor:pointer;
   background:lightgrey;
 }
@@ -277,7 +277,7 @@ progress::-webkit-progress-value, progress::-moz-progress-bar  {
   <p id="streamtitle"></p>
   <p><progress id="progress2"></progress><input id="progress" type="range"></p>
 </div>
-<p id="newurlbar"><input type="text" id="searchpattern" placeholder="Search for radio stations"><input class="searchbutton" id="namesearch" type="submit" value="Search name" onclick="getStations(searchpattern.value)"><input class="searchbutton" type="submit" value="Search tag" onclick="getTags(searchpattern.value)"></p>
+<p id="newurlbar"><input type="text" id="searchpattern" placeholder="Search for radio stations"><input class="searchbutton" id="namesearch" type="submit" value="Search" onclick="getStations(searchpattern.value)"></p>
 <div id="controlpanel">
   <p id="playerstatus">eStreamPlayer32</p>
   <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
@@ -447,6 +447,9 @@ function get_radiobrowser_server_config(baseurl) {
     return new Promise((resolve, reject)=>{
         var request = new XMLHttpRequest()
         request.open('GET', baseurl + '/json/config', true);
+        request.onerror = function() {
+            alert("Something went wrong searching. Maybe retry?");
+        }
         request.onload = function() {
             if (request.status >= 200 && request.status < 300){
                 var items = JSON.parse(request.responseText);
@@ -470,10 +473,19 @@ function get_radiobrowser_base_url_random() {
     });
 }
 
+function add_if_unique_url(item, index, arr) {
+    //only add every unique url once. Combine the item info in the only added item.
+    //TODO: inspect the url and only add untile the first ? char
+    var cnt = 0;
+    const strippedurl = (item.url.indexOf('?') != -1) ? item.url.substring(0, item.url.indexOf('?')) : item.url;
+    while (cnt < index) if (arr[cnt++].url == strippedurl) return;
+    const title = 'SSL: ' + (strippedurl.startsWith('https') ? 'YES' : 'NO') + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
+    document.getElementById('items').innerHTML += '<p class="foundlink" data-name="'+item.name+'" data-url="'+ strippedurl +'" data-station-uuid="'+ item.stationuuid +'"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+ item.name + '</span></p>';
+}
+
 var baseurl = '';
 
 function getStations(tagname) {
-
     items.innerHTML = '';
     if (!tagname) return;
     get_radiobrowser_base_url_random().then((x)=>{
@@ -481,21 +493,18 @@ function getStations(tagname) {
         return get_radiobrowser_server_config(x);
     }).then(config=>{
         let xhr = new XMLHttpRequest();
-        xhr.open("POST", baseurl + '/json/stations/search?name=' + tagname + '&offset=0&limit=100&hidebroken=true');
+        xhr.open("POST", baseurl + '/json/stations/search?name=' + tagname + '&offset=0&limit=200&hidebroken=true');
         xhr.onreadystatechange = function () {
           if (xhr.readyState === 4) {
               const items = JSON.parse(xhr.responseText);
-              items.forEach(item => {
-                  const title = 'URL: ' + item.url_resolved + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
-                  document.getElementById('items').innerHTML += '<p class="foundlink" data-name="'+item.name+'" data-url="'+ item.url +'" data-station-uuid="'+ item.stationuuid +'"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">'+ item.name + '</span></p>';
-            });
+              items.forEach(add_if_unique_url);
           }};
         xhr.send();
         searchbutton.click();
         overlay.click();
         searchpattern.value = '';
     })
-};
+}
 
 $(document).ready(function(){
   const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
@@ -523,8 +532,8 @@ $(document).ready(function(){
             case "FILE" :
               typeicon = '<img src="/libraryicon.svg" class="icon">';
               break;
-            case "STREAM" :
-              typeicon = '<img src="/streamicon.svg" class="icon">';
+            case "FOUND" :
+              typeicon = '<img src="/searchicon.svg" class="icon">';
               break;
             case "FAVO" :
               typeicon = '<img src="/favoriteicon.svg" class="icon">';
@@ -549,7 +558,7 @@ $(document).ready(function(){
 
       case "showstation":
         $('#playerstatus, #showstation').html(command[1]);
-        if (command[2] == "STREAM" || command[2] == "FAVO") $('#showstation').prepend(addicon);
+        if (command[2] == "FOUND" || command[2] == "FAVO") $('#showstation').prepend(addicon);
       break;
 
       case "streamtitle":

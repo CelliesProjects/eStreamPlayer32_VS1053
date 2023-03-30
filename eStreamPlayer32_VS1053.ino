@@ -180,7 +180,7 @@ bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, con
         case HTTP_PRESET:
             log_d("preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
             return false;
-        case HTTP_STREAM:
+        case HTTP_FOUND:
         case HTTP_FAVORITE:
             {
                 log_d("saving stream: %s -> %s", filename, item.url.c_str());
