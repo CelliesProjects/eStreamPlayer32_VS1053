@@ -100,6 +100,10 @@ void playerTask(void* parameter) {
 //                                   H E L P E R - R O U T I N E S                       *
 //****************************************************************************************
 
+inline __attribute__((always_inline)) void updateCurrentItemOnClients() {
+    ws.printfAll("%s\n%i\n", CURRENT_HEADER, playList.currentItem());
+}
+
 void startItem(uint8_t const index, size_t offset = 0) {
     updateCurrentItemOnClients();
     audio_showstreamtitle("");
@@ -154,10 +158,6 @@ void playlistHasEnded() {
     audio_showstreamtitle(VERSION_STRING);
     playList.setCurrentItem(PLAYLIST_STOPPED);
     updateCurrentItemOnClients();
-}
-
-inline __attribute__((always_inline)) void updateCurrentItemOnClients() {
-    ws.printfAll("%s\n%i\n", CURRENT_HEADER, playList.currentItem());
 }
 
 void upDatePlaylistOnClients() {
