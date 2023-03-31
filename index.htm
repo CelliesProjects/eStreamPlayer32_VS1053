@@ -346,7 +346,7 @@
     <p class="errormessage">Waiting for favorites...</p>
   </div>
   <div id="SEARCH" class="tabcontent">
-    <div id="items"></div>
+    <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the searchbar to find radio stations</span></p>
   </div>
   <div id="overlay">
     <h3 id="showstation"></h3>
@@ -575,20 +575,20 @@
     }
 
     function add_if_unique_url(item, index, arr) {
-      //only add every unique url once. Combine the item info in the only added item.
-      //TODO: inspect the url and only add untile the first ? char
-      var cnt = 0;
       const strippedurl = (item.url.indexOf('?') != -1) ? item.url.substring(0, item.url.indexOf('?')) : item.url;
+      var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
       const title = 'SSL: ' + (strippedurl.startsWith('https') ? 'YES' : 'NO') + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
-      document.getElementById('items').innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl + '" data-station-uuid="' + item.stationuuid + '"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item.name + '</span></p>';
+      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl + '" data-station-uuid="' + item.stationuuid + '"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item.name + '</span></p>';
     }
 
     var baseurl = '';
 
     function getStations(tagname) {
-      items.innerHTML = '';
       if (!tagname) return;
+      SEARCH.innerHTML = '';
+      searchpattern.disabled = true;
+      searchpattern.placeholder = 'Search is running. Please wait...';
       get_radiobrowser_base_url_random().then((x) => {
         baseurl = x;
         return get_radiobrowser_server_config(x);
@@ -596,9 +596,11 @@
         let xhr = new XMLHttpRequest();
         xhr.open("POST", baseurl + '/json/stations/search?name=' + tagname + '&offset=0&limit=200&hidebroken=true');
         xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
+          if (xhr.readyState === 4) {            
             const items = JSON.parse(xhr.responseText);
             items.forEach(add_if_unique_url);
+            searchpattern.placeholder = 'Search for radio stations';
+            searchpattern.disabled = false;
           }
         };
         xhr.send();
@@ -931,4 +933,5 @@
     });
   </script>
 </body>
+
 </html>
