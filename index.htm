@@ -4,7 +4,7 @@
 <head>
   <script>
     //setting for dev/debug */
-    const debugip = "192.168.0.104";  //change this to the esp32 ip for remote running of this page
+    const debugip = "192.168.0.101";  //change this to the esp32 ip for remote running of this page
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
@@ -238,6 +238,7 @@
       display: inline;
     }
 
+    #addfavorite:hover,
     .playercontrol .icon:hover {
       cursor: pointer;
     }
@@ -346,7 +347,7 @@
     <p class="errormessage">Waiting for favorites...</p>
   </div>
   <div id="SEARCH" class="tabcontent">
-    <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the searchbar to find radio stations</span></p>
+    <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the search to find music on radio-browser.info</span></p>
   </div>
   <div id="overlay">
     <h3 id="showstation"></h3>
@@ -466,9 +467,6 @@
             libraryUser = libraryData[1].trim();
             libraryPwd = libraryData[2].trim();
           }
-          console.log('script url: ' + libraryURL);
-          console.log('user: ' + libraryUser);
-          console.log('password: ' + libraryPwd);
           scrollPos.push($('#LIBRARY').scrollTop());
           updateLibraryFolder(currentpath, '', true);
 
@@ -579,7 +577,7 @@
       var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
       const title = 'SSL: ' + (strippedurl.startsWith('https') ? 'YES' : 'NO') + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
-      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl + '" data-station-uuid="' + item.stationuuid + '"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item.name + '</span></p>';
+      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl + '" data-station-uuid="' + item.stationuuid + '"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' + (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Start this url without encryption (which might fail)">' : '') + '<span class="text">' + item.name + '</span></p>';
     }
 
     var baseurl = '';
@@ -629,7 +627,6 @@
             break;
           case "playlist":
             $('#PLAYLIST').html('');
-            console.log("Items in playlist:" + (command.length - 2) / 2);
             var typeicon = "";
             for (var i = 1; i < command.length - 1; i = i + 2) {
               switch (command[i + 1]) {
@@ -670,7 +667,6 @@
             break;
 
           case "progress":
-            //console.log("progress: " + command[1] + "/" + command[2]);
             $('#progress, #progress2').show();
             $('#progress').attr("min", 0);
             $('#progress').attr("max", command[2]);
@@ -705,13 +701,11 @@
       };
 
       ws.onopen = function (event) {
-        console.log('[WebSocket] Connected');
         $('#streamtitle').html('');
         refreshAllTabs();
       }
 
       ws.onclose = function (event) {
-        console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason);
         if ('visible' === document.visibilityState) {
           $('#PLAYLIST').html('<p class="errormessage">' + erroricon + 'No WS connection. Reconnecting...</p>');
           ws.open();
@@ -719,7 +713,6 @@
       }
 
       ws.onerror = function (error) {
-        console.log('[WebSocket] Error: ' + error.message);
         ws.refresh();
       }
 
@@ -909,6 +902,13 @@
         $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
       });
 
+      $('body').on('click', '.foundlink img.icon.nosslicon', function (e) {
+        e.stopPropagation();
+        const nosslurl = 'http' + this.parentElement.getAttribute('data-url').substring(5);
+        ws.send("_foundlink\n" + nosslurl + '\n' + this.parentElement.getAttribute('data-name'));
+        $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
       document.addEventListener('visibilitychange', e => {
         switch (document.visibilityState) {
           case 'visible':
@@ -933,5 +933,4 @@
     });
   </script>
 </body>
-
 </html>

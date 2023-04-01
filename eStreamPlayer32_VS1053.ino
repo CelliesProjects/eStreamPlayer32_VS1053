@@ -495,6 +495,13 @@ void setup() {
         request->send(response);
     });
 
+    server.on("/nosslicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, nosslicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
     server.onNotFound([](AsyncWebServerRequest* request) {
         log_e("404 - Not found: 'http://%s%s'", request->host().c_str(), request->url().c_str());
         request->send(404);
