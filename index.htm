@@ -347,7 +347,8 @@
     <p class="errormessage">Waiting for favorites...</p>
   </div>
   <div id="SEARCH" class="tabcontent">
-    <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the search to find music on radio-browser.info</span></p>
+    <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the search to find music on
+        radio-browser.info</span></p>
   </div>
   <div id="overlay">
     <h3 id="showstation"></h3>
@@ -547,7 +548,9 @@
         var request = new XMLHttpRequest()
         request.open('GET', baseurl + '/json/config', true);
         request.onerror = function () {
-          alert("Something went wrong searching. Maybe retry?");
+          console.log("Something went wrong searching. retrying...");
+          request.abort();
+          searchbutton.click();
         }
         request.onload = function () {
           if (request.status >= 200 && request.status < 300) {
@@ -577,7 +580,11 @@
       var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
       const title = 'SSL: ' + (strippedurl.startsWith('https') ? 'YES' : 'NO') + '\nCODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
-      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl + '" data-station-uuid="' + item.stationuuid + '"title="' + title + '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' + (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Start this url without encryption (which might fail)">' : '') + '<span class="text">' + item.name + '</span></p>';
+      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl +
+        '" data-station-uuid="' + item.stationuuid + '"title="' + title +
+        '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' +
+        (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Start this url without encryption (which might fail)">' : '') + 
+        '<span class="text">' + item.name + '</span></p>';
     }
 
     var baseurl = '';
@@ -594,7 +601,7 @@
         let xhr = new XMLHttpRequest();
         xhr.open("POST", baseurl + '/json/stations/search?name=' + tagname + '&offset=0&limit=200&hidebroken=true');
         xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {            
+          if (xhr.readyState === 4) {
             const items = JSON.parse(xhr.responseText);
             items.forEach(add_if_unique_url);
             searchpattern.placeholder = 'Search for radio stations';
@@ -933,4 +940,5 @@
     });
   </script>
 </body>
+
 </html>
