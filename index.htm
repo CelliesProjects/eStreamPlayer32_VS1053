@@ -206,10 +206,11 @@
       width: -webkit-fill-available;
       text-align: center;
       font-size: 20px;
+      z-index: 3;
     }
 
     @-moz-document url-prefix() {
-      #newurl {
+      #searchpattern {
         width: -moz-available;
       }
     }
@@ -324,10 +325,18 @@
   <p id="locationbar">&nbsp;</p>
   <div class="tab">
     <div id="tabbar">
-      <button class="tablinks" id="librarybutton"><img src="/libraryicon.svg" class="tabicon"></button>
-      <button class="tablinks" id="radiobutton"><img src="/radioicon.svg" class="tabicon"></button>
-      <button class="tablinks" id="favoritesbutton"><img src="/favoriteicon.svg" class="tabicon"></button>
-      <button class="tablinks" id="searchbutton"><img src="/searchicon.svg" class="tabicon"></button>
+      <button class="tablinks" id="librarybutton" title="Local library">
+        <img src="/libraryicon.svg" class="tabicon">
+      </button>
+      <button class="tablinks" id="radiobutton" title="Preset radio">
+        <img src="/radioicon.svg" class="tabicon">
+      </button>
+      <button class="tablinks" id="favoritesbutton" title="Saved favorites">
+        <img src="/favoriteicon.svg" class="tabicon">
+      </button>
+      <button class="tablinks" id="searchbutton" title="Radio-browser results">
+        <img src="/searchicon.svg" class="tabicon">
+      </button>
     </div>
   </div>
   <div id="PLAYLIST" class="tabcontent">
@@ -339,54 +348,62 @@
         <path d="M0 0h24v24H0z" fill="none" />
         <path
           d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z" />
-      </svg>connect to library...</p>
+      </svg></p>
   </div>
-  <div id="WEBRADIO" class="tabcontent">
-  </div>
+  <div id="WEBRADIO" class="tabcontent"></div>
   <div id="FAVORITES" class="tabcontent">
     <p class="errormessage">Waiting for favorites...</p>
   </div>
   <div id="SEARCH" class="tabcontent">
     <p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Use the search to find music on
-        radio-browser.info</span></p>
+        radio-browser.info</span>
+    </p>
   </div>
   <div id="overlay">
     <h3 id="showstation"></h3>
     <p id="streamtitle"></p>
     <p><progress id="progress2"></progress><input id="progress" type="range"></p>
   </div>
-  <p id="newurlbar"><input type="text" id="searchpattern" placeholder="Search for radio stations"><input
-      class="searchbutton" id="namesearch" type="submit" value="Search" onclick="getStations(searchpattern.value)"></p>
+  <p id="newurlbar"><input type="text" id="searchpattern" placeholder="Search for radio stations">
+    <input class="searchbutton" id="namesearch" type="submit" value="Search" onclick="getStations(searchpattern.value)">
+  </p>
   <div id="controlpanel">
     <p id="playerstatus">eStreamPlayer32</p>
-    <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24"
-        height="24" viewBox="0 0 24 24">
+    <p class="playercontrol" title="Previous item"><svg class="icon" id="previousbutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
         <path d="M0 0h24v24H0z" fill="none" />
-      </svg></p>
-    <p class="playercontrol" id="playpause"><svg class="icon" id="pausebutton" xmlns="http://www.w3.org/2000/svg"
-        width="24" height="24" viewBox="0 0 24 24">
+      </svg>
+    </p>
+    <p class="playercontrol" id="playpause" title="Play/pause"><svg class="icon" id="pausebutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
         <path d="M0 0h24v24H0z" fill="none" />
-      </svg></p>
-    <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-        viewBox="0 0 24 24">
+      </svg>
+    </p>
+    <p class="playercontrol" title="Next item"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg"
+        width="24" height="24" viewBox="0 0 24 24">
         <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
         <path d="M0 0h24v24H0z" fill="none" />
-      </svg></p>
-    <p class="playercontrol"><svg class="icon" id="infobutton" xmlns="http://www.w3.org/2000/svg" height="24"
-        viewBox="0 0 24 24" width="24">
+      </svg>
+    </p>
+    <p class="playercontrol" title="Show/hide stream info"><svg class="icon" id="infobutton"
+        xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
         <path d="M0 0h24v24H0V0z" fill="none" />
         <path
           d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
       </svg>
-      <input class="playercontrol" type="range" min="60" max="100" id="volumeslider" value="0">
-    <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24"
-        height="24" viewBox="0 0 24 24">
+    </p>
+    <p class="playercontrol" title="Volume control">
+      <input type="range" min="60" max="100" id="volumeslider" value="0">
+    </p>
+    <p class="playercontrol" title="Clear playlist"><svg class="icon" id="clearbutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
         <path
           d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
         <path fill="none" d="M0 0h24v24H0z" />
-      </svg></p>
+      </svg>
+    </p>
   </div>
   <div id="messageoverlay">message overlay</div>
   <script>
@@ -547,8 +564,8 @@
       return new Promise((resolve, reject) => {
         var request = new XMLHttpRequest()
         request.open('GET', baseurl + '/json/config', true);
-        request.onerror = function () {          
-          alert('Request failed.\nError: ' + request.response + '\nPlease retry...'); 
+        request.onerror = function () {
+          alert('Request failed.\nError: ' + request.response + '\nPlease retry...');
           /* see https://javascript.info/xmlhttprequest */
         }
         request.onload = function () {
@@ -582,7 +599,7 @@
       SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl +
         '" data-station-uuid="' + item.stationuuid + '"title="' + title +
         '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' +
-        (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="This stream is SSL secured.\n\Click here to start this url in unsecure (fast) mode.\n(which might fail)">' : '') + 
+        (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="This stream is SSL secured.\n\Click here to start this url in unsecure (fast) mode.\n(which might fail)">' : '') +
         '<span class="text">' + item.name + '</span></p>';
     }
 
@@ -665,7 +682,7 @@
 
           case "showstation":
             $('#playerstatus, #showstation').html(command[1]);
-            if (command[2] == "FOUND" || command[2] == "FAVO") $('#showstation').prepend(addicon);
+            if (command[2] == "FOUND" || command[2] == "FAVO") $('#showstation').prepend('<span title="Click to save this url to favorites">' + addicon + '</span>');
             break;
 
           case "streamtitle":
@@ -938,4 +955,5 @@
     });
   </script>
 </body>
+
 </html>
