@@ -81,7 +81,7 @@
     .tab button {
       background-color: lightgrey;
       display: flex;
-      align-items: end;      
+      align-items: end;
       float: left;
       border: none;
       outline: none;
@@ -117,13 +117,11 @@
 
     #uplink,
     .folderlink,
-    .sdfolderlink,
     .filelink,
     .streamlink,
     .plitem,
     .favoritelink,
     .errormessage,
-    #searchbar,
     .foundlink {
       background: grey;
       color: black;
@@ -134,6 +132,10 @@
       overflow: hidden;
       white-space: nowrap;
       display: list-item;
+    }
+
+    .errormessage {
+      background: cadetblue;
     }
 
     #searchbar {
@@ -333,19 +335,21 @@
     </div>
   </div>
   <div id="PLAYLIST" class="tabcontent">
-    <p class="errormessage">Waiting for playlist...</p>
+    <p class="errormessage"><span class="text"><img src="/emptyicon.svg" class="icon">Waiting for playlist...</span></p>
   </div>
   <div id="LIBRARY" class="tabcontent">
-    <p class="errormessage"><svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24"
-        width="24">
+    <p class="errormessage">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
         <path d="M0 0h24v24H0z" fill="none" />
         <path
           d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z" />
-      </svg></p>
+      </svg>
+      <span class="text">Waiting for library...</span>
+    </p>
   </div>
   <div id="WEBRADIO" class="tabcontent"></div>
   <div id="FAVORITES" class="tabcontent">
-    <p class="errormessage">Waiting for favorites...</p>
+    <p class="errormessage"><img src="/emptyicon.svg" class="icon"><span class="text">Waiting for favorites...</span></p>
   </div>
   <div id="SEARCH" class="tabcontent">
     <p class="errormessage"><img src="/searchicon.svg" class="icon">
@@ -444,7 +448,7 @@
           })
         })
         .fail(function () {
-          $('#WEBRADIO').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open station list</p>');
+          $('#WEBRADIO').html('<p class="errormessage">' + erroricon + '<span class="text">ERROR: Could not open station list</span></p>');
         });
     }
 
@@ -542,9 +546,8 @@
           if (request.status >= 200 && request.status < 300) {
             var items = JSON.parse(request.responseText).map(x => "https://" + x.name);
             resolve(items);
-          } else {
+          } else
             reject(request.statusText);
-          }
         }
         request.send();
       });
@@ -557,15 +560,18 @@
       return new Promise((resolve, reject) => {
         var request = new XMLHttpRequest()
         request.open('GET', baseurl + '/json/config', true);
+
+        request.onerror = function () {
+          SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Request failed, please retry...</span></p>';
+          console.log('Request failed. Error: ' + request.statusText);
+        }
+
         request.onload = function () {
           if (request.status >= 200 && request.status < 300) {
             var items = JSON.parse(request.responseText);
             resolve(items);
-          } else {
+          } else
             reject(request.statusText);
-            SEARCH.innerHTML = '<p class="errormessage">' + erroricon + 'Request failed, please retry...</p>';
-            console.log('Request failed. Error: ' + request.statusText);
-          }
         }
         request.send();
       });
@@ -586,7 +592,9 @@
       const strippedurl = (item.url.indexOf('?') != -1) ? item.url.substring(0, item.url.indexOf('?')) : item.url;
       var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
-      const title = 'CODEC: ' + item.codec + '\nBITRATE: ' + item.bitrate + 'kbps\nLANGUAGE: ' + item.language;
+      const title = 'CODEC: ' + item.codec +
+        (item.bitrate ? ('\nBITRATE: ' + item.bitrate + 'kbps') : '') +
+        (item.language ? ('\nLANGUAGE: ' + item.language) : '');
       SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl +
         '" data-station-uuid="' + item.stationuuid + '"title="' + title +
         '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' +
@@ -598,7 +606,7 @@
 
     function getStations(query) {
       if (!query) return;
-      SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon">Searching...</p>';
+      SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Searching...</span></p>';
       searchpattern.disabled = true;
       searchpattern.placeholder = 'Search is running. Please wait...';
       get_radiobrowser_base_url_random().then((x) => {
@@ -611,10 +619,10 @@
           if (xhr.readyState === 4) {
             const items = JSON.parse(xhr.responseText);
             SEARCH.innerHTML = '';
-            if (items.length)               
-              items.forEach(addIfUnique);            
+            if (items.length)
+              items.forEach(addIfUnique);
             else
-              SEARCH.innerHTML = '<p class="errormessage">' + erroricon + query + ' was not found</p>';
+              SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Search for \'' + query + '\' has no results</span></p>';
             searchpattern.placeholder = 'Search for radio stations';
             searchpattern.disabled = false;
           }
@@ -726,7 +734,7 @@
       ws.onclose = function () {
         console.log('Websocket closed');
         if ('visible' === document.visibilityState) {
-          $('#PLAYLIST').html('<p class="errormessage">' + erroricon + 'No WS connection. Reconnecting...</p>');
+          $('#PLAYLIST').html('<p class="errormessage">' + erroricon + '<span class="text">No WS connection. Reconnecting...</span></p>');
           ws.open();
         }
       }
