@@ -72,7 +72,7 @@
       height: 20px;
     }
 
-    .tab button {
+    .buttonbar button {
       background-color: lightgrey;
       display: flex;
       align-items: end;
@@ -89,7 +89,7 @@
       border-bottom-right-radius: 0;
     }
 
-    .tab button:hover {
+    .buttonbar button:hover {
       background-color: #ddd;
     }
 
@@ -198,7 +198,7 @@
     }
 
 
-    #namesearch {
+    #startsearch {
       height: 100%;
       padding: 0 20px;
       font-size: 20px;
@@ -230,6 +230,7 @@
 
     #volumeslider:hover,
     #addfavorite:hover,
+    #startsearch,
     .playercontrol .icon:hover {
       cursor: pointer;
     }
@@ -309,7 +310,7 @@
 
 <body class="noselect">
   <p id="locationbar">&nbsp;</p>
-  <div class="tab">
+  <div class="buttonbar">
     <button class="tablinks" id="librarybutton" title="Local library">
       <img src="/libraryicon.svg" class="tabicon">
     </button>
@@ -352,7 +353,7 @@
     <p><progress id="progress2"></progress><input id="progress" type="range"></p>
   </div>
   <p id="searchbar"><input type="text" id="searchpattern" placeholder="Search for radio stations">
-    <input id="namesearch" type="submit" value="Search" onclick="getStations(searchpattern.value)">
+    <input id="startsearch" type="submit" value="Search" onclick="getStations(searchpattern.value)">
   </p>
   <div id="controlpanel">
     <p id="playerstatus">eStreamPlayer32</p>
@@ -865,7 +866,7 @@
       });
 
       $('#searchpattern').on('keydown', function (e) {
-        if (e.which == 13) $('#namesearch').click();
+        if (e.which == 13) $('#startsearch').click();
       });
 
       $('#infobutton').on('mouseup', function () {
