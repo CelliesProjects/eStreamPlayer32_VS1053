@@ -273,9 +273,8 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
 
 void handleMultiFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len, AwsFrameInfo* info) {
     static String message;
-    auto cnt = 0;
-    while (cnt < len)
-        message.concat((char)data[cnt++]);
+
+    message.concat(data, len); //todo: check result
 
     if ((info->index + len) == info->len && info->final) {
         log_d("Final multi frame message for %i bytes", info->index + len);
