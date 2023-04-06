@@ -68,14 +68,8 @@
       white-space: nowrap;
     }
 
-    .tab {
-      overflow: auto;
-    }
-
-    #tabbar {
-      overflow: unset;
-      width: max-content;
-      overflow-y: unset;
+    .tabicon {
+      height: 20px;
     }
 
     .tab button {
@@ -157,6 +151,12 @@
       z-index: 3;
     }
 
+    @-moz-document url-prefix() {
+      #searchpattern {
+        width: -moz-available;
+      }
+    }
+
     #searchbar input {
       vertical-align: middle;
       margin: 0;
@@ -183,10 +183,6 @@
       background: lightgrey;
     }
 
-    .tabicon {
-      height: 20px;
-    }
-
     #showstation,
     #streamtitle,
     #streaminfo {
@@ -201,11 +197,6 @@
       vertical-align: middle;
     }
 
-    @-moz-document url-prefix() {
-      #searchpattern {
-        width: -moz-available;
-      }
-    }
 
     #namesearch {
       height: 100%;
@@ -319,20 +310,18 @@
 <body class="noselect">
   <p id="locationbar">&nbsp;</p>
   <div class="tab">
-    <div id="tabbar">
-      <button class="tablinks" id="librarybutton" title="Local library">
-        <img src="/libraryicon.svg" class="tabicon">
-      </button>
-      <button class="tablinks" id="radiobutton" title="Preset radio">
-        <img src="/radioicon.svg" class="tabicon">
-      </button>
-      <button class="tablinks" id="favoritesbutton" title="Saved favorites">
-        <img src="/favoriteicon.svg" class="tabicon">
-      </button>
-      <button class="tablinks" id="searchbutton" title="Radio-browser results">
-        <img src="/searchicon.svg" class="tabicon">
-      </button>
-    </div>
+    <button class="tablinks" id="librarybutton" title="Local library">
+      <img src="/libraryicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="radiobutton" title="Preset radio">
+      <img src="/radioicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="favoritesbutton" title="Saved favorites">
+      <img src="/favoriteicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="searchbutton" title="Radio-browser results">
+      <img src="/searchicon.svg" class="tabicon">
+    </button>
   </div>
   <div id="PLAYLIST" class="tabcontent">
     <p class="errormessage"><span class="text"><img src="/emptyicon.svg" class="icon">Waiting for playlist...</span></p>
@@ -349,7 +338,8 @@
   </div>
   <div id="WEBRADIO" class="tabcontent"></div>
   <div id="FAVORITES" class="tabcontent">
-    <p class="errormessage"><img src="/emptyicon.svg" class="icon"><span class="text">Waiting for favorites...</span></p>
+    <p class="errormessage"><img src="/emptyicon.svg" class="icon"><span class="text">Waiting for favorites...</span>
+    </p>
   </div>
   <div id="SEARCH" class="tabcontent">
     <p class="errormessage"><img src="/searchicon.svg" class="icon">
