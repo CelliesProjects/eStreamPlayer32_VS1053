@@ -4,7 +4,7 @@
 <head>
   <script>
     //setting for dev/debug */
-    const debugip = "192.168.0.101";  //change this to the esp32 ip for remote running of this page
+    const debugip = "192.168.0.102";  //change this to the esp32 ip for remote running of this page
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1">
@@ -202,6 +202,11 @@
       height: 100%;
       padding: 0 20px;
       font-size: 20px;
+      white-space: nowrap;
+    }
+
+    #startsearch .icon {
+      margin: 0 25px;
     }
 
     #controlpanel {
@@ -231,6 +236,7 @@
     #volumeslider:hover,
     #addfavorite:hover,
     #startsearch,
+    .pagebutton,
     .playercontrol .icon:hover {
       cursor: pointer;
     }
@@ -353,7 +359,8 @@
     <p><progress id="progress2"></progress><input id="progress" type="range"></p>
   </div>
   <p id="searchbar"><input type="text" id="searchpattern" placeholder="Search for radio stations">
-    <input id="startsearch" type="submit" value="Search" onclick="getStations(searchpattern.value)">
+    <button id="startsearch" type="button" onclick="currentPage = 0;getStations(searchpattern.value, currentPage);">
+      <img src="/searchicon.svg" class="icon"></button>
   </p>
   <div id="controlpanel">
     <p id="playerstatus">eStreamPlayer32</p>
@@ -552,9 +559,10 @@
         var request = new XMLHttpRequest()
         request.open('GET', baseurl + '/json/config', true);
 
-        request.onerror = function () {
-          SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Request failed, please retry...</span></p>';
-          console.log('Request failed. Error: ' + request.statusText);
+        request.onerror = function (e) {
+          e.preventDefault();
+          console.log('Server config could not be retrieved.\nError: ' + request.statusText + '\nRetrying');
+          getStations(searchquery, currentPage);
         }
 
         request.onload = function () {
@@ -580,6 +588,10 @@
     }
 
     function addIfUnique(item, index, arr) {
+      if (index === itemsPerPage) {
+        SEARCH.innerHTML += '<p class="errormessage pagebutton" id="nextpage"><img src="/searchicon.svg" class="icon"><span class="text">More \'' + searchquery + '\' results</span></p>';
+        return;
+      }
       const strippedurl = (item.url.indexOf('?') != -1) ? item.url.substring(0, item.url.indexOf('?')) : item.url;
       var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
@@ -592,11 +604,14 @@
         (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Click here to start this url in unsecure (fast) mode.\n(which might fail)">' : '') +
         '<span class="text">' + item.name + '</span></p>';
     }
-
+    const itemsPerPage = 50;
     var baseurl = '';
+    var currentPage = 0;
+    var searchquery = '';
 
-    function getStations(query) {
+    function getStations(query, page) {
       if (!query) return;
+      searchquery = query;
       SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Searching...</span></p>';
       searchpattern.disabled = true;
       searchpattern.placeholder = 'Search is running. Please wait...';
@@ -605,13 +620,16 @@
         return get_radiobrowser_server_config(x);
       }).then(config => {
         let xhr = new XMLHttpRequest();
-        xhr.open("POST", baseurl + '/json/stations/search?name=' + query + '&offset=0&limit=200&hidebroken=true');
+        xhr.open("POST", baseurl + '/json/stations/search?name=' + query + '&offset=' + (page * itemsPerPage) + '&limit=' + (itemsPerPage + 1) + '&hidebroken=true');
         xhr.onreadystatechange = function () {
           if (xhr.readyState === 4) {
             const items = JSON.parse(xhr.responseText);
             SEARCH.innerHTML = '';
-            if (items.length)
+            if (items.length) {
+              if (currentPage) 
+                SEARCH.innerHTML += '<p class="errormessage pagebutton" id="previouspage"><img src="/searchicon.svg" class="icon"><span class="text">Previous \'' + searchquery + '\' results</span></p>';
               items.forEach(addIfUnique);
+            }
             else
               SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Search for \'' + query + '\' has no results</span></p>';
             searchpattern.placeholder = 'Search for radio stations';
@@ -643,9 +661,13 @@
             }
             break;
           case "playlist":
+            if (command[1] == '') {
+              $('#PLAYLIST').html('<p class="errormessage">' + erroricon + '<span class="text">No items in playlist</span></p>');
+              return;
+            }
             $('#PLAYLIST').html('');
             var typeicon = "";
-            for (var i = 1; i < command.length - 1; i = i + 2) {
+            for (var i = 1; i < command.length - 1; i += 2) {
               switch (command[i + 1]) {
                 case "FILE":
                   typeicon = '<img src="/libraryicon.svg" class="icon">';
@@ -925,6 +947,18 @@
         const nosslurl = 'http' + this.parentElement.getAttribute('data-url').substring(5);
         ws.send("_foundlink\n" + nosslurl + '\n' + this.parentElement.getAttribute('data-name'));
         $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
+      $('body').on('click', '#previouspage', function () {
+        currentPage--;
+        getStations(searchquery, currentPage);
+        console.log('page ' + currentPage);
+      });      
+
+      $('body').on('click', '#nextpage', function () {
+        currentPage++;
+        getStations(searchquery, currentPage);
+        console.log('page ' + currentPage);
       });
 
       document.addEventListener('visibilitychange', e => {
