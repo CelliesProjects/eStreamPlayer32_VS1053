@@ -4,7 +4,7 @@
 <head>
   <script>
     //setting for dev/debug */
-    const debugip = "192.168.0.102";  //change this to the esp32 ip for remote running of this page
+    const debugip = "192.168.0.101";  //change this to the esp32 ip for remote running of this page
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1">
@@ -263,10 +263,6 @@
       opacity: 0.93;
     }
 
-    #progress {
-      cursor: pointer;
-    }
-
     #messageoverlay {
       display: none;
       position: absolute;
@@ -274,7 +270,7 @@
       left: 15%;
       right: 15%;
       background: green;
-      border: solid 1px white;
+      border: solid 1px black;
       border-radius: 5px;
       padding: 10px;
     }
@@ -299,17 +295,21 @@
       background: green;
     }
 
-    #progress {
-      position: relative;
-      opacity: 0;
-      top: -20px;
-    }
-
-    #progress,
     #progress2 {
       margin: 0;
+      padding: 0;
       width: 90%;
       height: 20px;
+    }
+
+    #progressinput {
+      appearance: inherit;
+      height: 20px;
+      margin: auto 0;
+      position: relative;
+      top:-21px;
+      width: 91%;
+      opacity: 0;
     }
   </style>
 </head>
@@ -356,7 +356,7 @@
   <div id="overlay">
     <h3 id="showstation"></h3>
     <p id="streamtitle"></p>
-    <p><progress id="progress2"></progress><input id="progress" type="range"></p>
+    <p><progress id="progress2"></progress><input id="progressinput" type="range" min="0"></p>
   </div>
   <p id="searchbar"><input type="text" id="searchpattern" placeholder="Search for radio stations">
     <button id="startsearch" type="button" onclick="currentPage = 0;getStations(searchpattern.value, currentPage);">
@@ -465,10 +465,10 @@
         { "opacity": "0" },
         {
           queue: false,
-          duration: 1100,
+          duration: 6000,
           complete: onComplete
         }
-      )
+      );
     };
 
     function refreshAllTabs() {
@@ -614,7 +614,7 @@
       searchquery = query;
       SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Searching...</span></p>';
       searchpattern.disabled = true;
-      searchpattern.placeholder = 'Search is running. Please wait...';
+      searchpattern.placeholder = 'Searching. Please wait...';
       get_radiobrowser_base_url_random().then((x) => {
         baseurl = x;
         return get_radiobrowser_server_config(x);
@@ -626,7 +626,7 @@
             const items = JSON.parse(xhr.responseText);
             SEARCH.innerHTML = '';
             if (items.length) {
-              if (currentPage) 
+              if (currentPage)
                 SEARCH.innerHTML += '<p class="errormessage pagebutton" id="previouspage"><img src="/searchicon.svg" class="icon"><span class="text">Previous \'' + searchquery + '\' results</span></p>';
               items.forEach(addIfUnique);
             }
@@ -651,7 +651,7 @@
         var command = e.data.split("\n");
         switch (command[0]) {
           case "currentPLitem":
-            $('#progress, #progress2').hide();
+            $('#progress2').hide();
             $('.plitem').css("background-color", "");
             currentItem = parseInt(command[1]);
             if (-1 == currentItem) {
@@ -706,13 +706,10 @@
             break;
 
           case "progress":
-            $('#progress, #progress2').show();
-            $('#progress').attr("min", 0);
-            $('#progress').attr("max", command[2]);
-            $('#progress').attr("value", command[1]);
-
-            $('#progress2').attr("max", command[2]);
+            $('#progress2').show();
             $('#progress2').attr("value", command[1]);
+            $('#progress2').attr("max", command[2]);
+            $('#progressinput').attr("max", command[2]);
             break;
 
           case "status":
@@ -900,11 +897,18 @@
         e.stopPropagation();
         const filename = prompt("Enter a filename", $('#showstation').text());
         if (!filename) return;
-        if (! /^[^\\/:\*\?"<>\|]+$/.test(filename)) {
+
+        // https://stackoverflow.com/questions/8485027/javascript-url-safe-filename-safe-string
+
+        // fatfs path name format - http://elm-chan.org/fsw/ff/doc/filename.html
+
+        let test = filename.replace(/[^a-z0-9 .&-'"]/gi, '');
+        alert(test);
+        if (! /^[^\\/:\*\?"<>\|]+$/.test(test)) {
           showMessage("not saved - illegal char in name");
           return;
         }
-        ws.send("currenttofavorites\n" + filename);
+        ws.send("currenttofavorites\n" + test);
       });
 
       $('body').on('change', '#volumeslider', function (e) {
@@ -919,7 +923,8 @@
         setOverlayTimeOut();
       });
 
-      $('#progress').on('click touchend', function (e) {
+      $('#progressinput').on('click touchend', function (e) {
+        e.preventDefault();
         e.stopPropagation();
         ws.send("jumptopos\n" + this.value)
       });
@@ -950,15 +955,15 @@
       });
 
       $('body').on('click', '#previouspage', function () {
-        currentPage--;
-        getStations(searchquery, currentPage);
-        console.log('page ' + currentPage);
-      });      
+        getStations(searchquery, --currentPage);
+      });
 
       $('body').on('click', '#nextpage', function () {
-        currentPage++;
-        getStations(searchquery, currentPage);
-        console.log('page ' + currentPage);
+        getStations(searchquery, ++currentPage);
+      });
+
+      $('#messageoverlay').on('mouseover', function () {
+        $(this).hide();
       });
 
       document.addEventListener('visibilitychange', e => {
