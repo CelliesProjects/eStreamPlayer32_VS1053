@@ -907,18 +907,8 @@
         var filename = prompt('Enter a filename', $('#showstation').text().replace(validCharsRegex, '').trim());
         if (!filename) return;
 
-        // let the server receive a possibly invalid filename and respond to the error
+        // let the server receive a possibly invalid filename and respond to the error in the callback
         ws.send("currenttofavorites\n" + filename);
-
-
-
-
-        /*
-        if (validCharsRegex.test(filename))
-          alert("COULD NOT SAVE THIS STREAM\nThere are one or more non allowed characters in\n'" + filename + "'");
-        else
-          ws.send("currenttofavorites\n" + filename);
-          */
       });
 
       $('body').on('change', '#volumeslider', function (e) {
