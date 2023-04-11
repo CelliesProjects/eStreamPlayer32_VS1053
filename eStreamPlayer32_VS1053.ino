@@ -183,12 +183,12 @@ bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, con
         case HTTP_FOUND:
         case HTTP_FAVORITE:
             {
-                log_d("saving stream: %s -> %s", filename, item.url.c_str());
                 char path[strlen(FAVORITES_FOLDER) + strlen(filename) + 1];
                 snprintf(path, sizeof(path), "%s%s", FAVORITES_FOLDER, filename);
                 File file = FFat.open(path, FILE_WRITE);
                 if (!file) {
-                    log_e("failed to open file for writing");
+                    log_e("failed to open '%s' for writing", filename);
+                    client->printf("%s\nERROR: Could not open '%s' for writing!", MESSAGE_HEADER, filename);
                     return false;
                 }
                 char url[item.url.length() + 2];
@@ -196,10 +196,11 @@ bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, con
                 const auto bytesWritten = file.print(url);
                 file.close();
                 if (bytesWritten < strlen(url)) {
-                    log_e("ERROR! saving '%s' failed - disk full?", filename);
-                    client->printf("%s\nCould not save '%s' to favorites!", MESSAGE_HEADER, filename);
+                    log_e("ERROR! Saving '%s' failed - disk full?", filename);
+                    client->printf("%s\nERROR: Could not completely save '%s' to favorites!", MESSAGE_HEADER, filename);
                     return false;
                 }
+                client->printf("%s\nSaved '%s' to favorites!", MESSAGE_HEADER, filename);
                 return true;
             }
             break;
@@ -302,6 +303,12 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
 
 void setup() {
     log_i("\n\n\t\t\t\t%s\n", VERSION_STRING);
+
+    const uint32_t idf = ESP_IDF_VERSION_PATCH + ESP_IDF_VERSION_MINOR *10 + ESP_IDF_VERSION_MAJOR * 100;
+    const uint32_t ard = ESP_ARDUINO_VERSION_PATCH + ESP_ARDUINO_VERSION_MINOR * 10 + ESP_ARDUINO_VERSION_MAJOR * 100;
+    log_i("ESP32 IDF Version %d.%d.%d", idf/100%10, idf/10%10 , idf%10);
+    log_i("ESP32 Arduino Version %d.%d.%d", ard/100%10, ard/10%10 , ard%10);    
+
     log_i("CPU: %iMhz", getCpuFrequencyMhz());
     log_d("Heap: %d", ESP.getHeapSize());
     log_d("Free: %d", ESP.getFreeHeap());

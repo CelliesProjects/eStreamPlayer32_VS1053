@@ -218,8 +218,7 @@ void handleSingleFrame(AsyncWebSocketClient* client, uint8_t* data, size_t len) 
         if (saveItemToFavorites(client, pch, item)) {
             String s;
             ws.textAll(favoritesToString(s));
-        } else
-            client->printf("%s\nSaving '%s' failed!", MESSAGE_HEADER, item.url.c_str());
+        }
     }
 
     else if (!strcmp("favoritetoplaylist", pch) || !strcmp("_favoritetoplaylist", pch)) {
