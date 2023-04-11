@@ -264,7 +264,6 @@
     }
 
     #messageoverlay {
-      display: none;
       position: absolute;
       top: 3px;
       left: 15%;
@@ -273,6 +272,7 @@
       border: solid 1px black;
       border-radius: 5px;
       padding: 10px;
+      display: none;
     }
 
     progress {
@@ -307,7 +307,7 @@
       height: 20px;
       margin: auto 0;
       position: relative;
-      top:-21px;
+      top: -21px;
       width: 91%;
       opacity: 0;
     }
@@ -400,7 +400,7 @@
       </svg>
     </p>
   </div>
-  <div id="messageoverlay">message overlay</div>
+  <div id="messageoverlay"></div>
   <script>
     const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
     const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
@@ -430,7 +430,7 @@
           updateLocationBar();
         })
         .fail(function () {
-          $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "' + libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
+          $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "' + libraryURL + "?folder=" + folder + '"</p>');
           currentpath = oldfolder;
           $('#LIBRARY').css({ "opacity": 1 });
         });
@@ -457,18 +457,21 @@
     }
 
     var onComplete = function () {
-      $('#messageoverlay').html('').width('0');
+      $('#messageoverlay').css('display', 'none').html('');
     };
 
     function showMessage(message) {
-      $('#messageoverlay').stop().html(message).width('').css("opacity", "1").show().animate(
-        { "opacity": "0" },
-        {
-          queue: false,
-          duration: 6000,
-          complete: onComplete
-        }
-      );
+      const error = message.startsWith('ERROR:') ? true : false;
+      $('#messageoverlay').css('background', error ? 'crimson' : 'green');
+      $('#messageoverlay').html(message).css('display', 'block').stop().css('opacity', '1')
+        .animate(
+          { "opacity": "0" },
+          {
+            queue: false,
+            duration: error ? 10000 : 5000,
+            complete: onComplete
+          }
+        )
     };
 
     function refreshAllTabs() {
@@ -587,7 +590,7 @@
       });
     }
 
-    function addIfUnique(item, index, arr) {
+    async function addIfUnique(item, index, arr) {
       if (index === itemsPerPage) {
         SEARCH.innerHTML += '<p class="errormessage pagebutton" id="nextpage"><img src="/searchicon.svg" class="icon"><span class="text">More \'' + searchquery + '\' results</span></p>';
         return;
@@ -895,20 +898,27 @@
 
       $('#overlay').on('click', '#addfavorite', function (e) {
         e.stopPropagation();
-        const filename = prompt("Enter a filename", $('#showstation').text());
+        // See:
+        // https://eloquentjavascript.net/09_regexp.html
+        // https://averstak.tripod.com/fatdox/names.htm
+        // fatfs path name format - http://elm-chan.org/fsw/ff/doc/filename.html
+        // https://javascript.info/regexp-escaping
+        const validCharsRegex = /[^a-z0-9\. !#\$%&'\(\)@\^_`\{\}~\+,;=\[\]-]/gi;
+        var filename = prompt('Enter a filename', $('#showstation').text().replace(validCharsRegex, '').trim());
         if (!filename) return;
 
-        // https://stackoverflow.com/questions/8485027/javascript-url-safe-filename-safe-string
+        // let the server receive a possibly invalid filename and respond to the error
+        ws.send("currenttofavorites\n" + filename);
 
-        // fatfs path name format - http://elm-chan.org/fsw/ff/doc/filename.html
 
-        let test = filename.replace(/[^a-z0-9 .&-'"]/gi, '');
-        alert(test);
-        if (! /^[^\\/:\*\?"<>\|]+$/.test(test)) {
-          showMessage("not saved - illegal char in name");
-          return;
-        }
-        ws.send("currenttofavorites\n" + test);
+
+
+        /*
+        if (validCharsRegex.test(filename))
+          alert("COULD NOT SAVE THIS STREAM\nThere are one or more non allowed characters in\n'" + filename + "'");
+        else
+          ws.send("currenttofavorites\n" + filename);
+          */
       });
 
       $('body').on('change', '#volumeslider', function (e) {
@@ -963,7 +973,7 @@
       });
 
       $('#messageoverlay').on('mouseover', function () {
-        $(this).hide();
+        $('#messageoverlay').css('display', 'none');
       });
 
       document.addEventListener('visibilitychange', e => {
