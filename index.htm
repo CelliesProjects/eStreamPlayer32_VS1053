@@ -595,24 +595,27 @@
         SEARCH.innerHTML += '<p class="errormessage pagebutton" id="nextpage"><img src="/searchicon.svg" class="icon"><span class="text">More \'' + searchquery + '\' results</span></p>';
         return;
       }
-      const strippedurl = (item.url.indexOf('?') != -1) ? item.url.substring(0, item.url.indexOf('?')) : item.url;
+      const pos = item.url.search(/[;?]/g);
+      const strippedurl = item.url.substring(0, pos !== -1 ? pos : item.url.length);
       var cnt = 0;
       while (cnt < index) if (arr[cnt++].url == strippedurl) return;
+
       const title = 'CODEC: ' + item.codec +
         (item.bitrate ? ('\nBITRATE: ' + item.bitrate + 'kbps') : '') +
         (item.language ? ('\nLANGUAGE: ' + item.language) : '');
+
       SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl +
         '" data-station-uuid="' + item.stationuuid + '"title="' + title +
         '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' +
         (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Click here to start this url in unsecure (fast) mode.\n(which might fail)">' : '') +
         '<span class="text">' + item.name + '</span></p>';
     }
-    const itemsPerPage = 50;
+    const itemsPerPage = 30;
     var baseurl = '';
     var currentPage = 0;
     var searchquery = '';
 
-    function getStations(query, page) {
+    async function getStations(query, page) {
       if (!query) return;
       searchquery = query;
       SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Searching...</span></p>';
@@ -632,8 +635,7 @@
               if (currentPage)
                 SEARCH.innerHTML += '<p class="errormessage pagebutton" id="previouspage"><img src="/searchicon.svg" class="icon"><span class="text">Previous \'' + searchquery + '\' results</span></p>';
               items.forEach(addIfUnique);
-            }
-            else
+            } else
               SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Search for \'' + query + '\' has no results</span></p>';
             searchpattern.placeholder = 'Search for radio stations';
             searchpattern.disabled = false;
@@ -663,6 +665,7 @@
               $('.plitem').eq(command[1]).css("background-color", "cadetblue");
             }
             break;
+
           case "playlist":
             if (command[1] == '') {
               $('#PLAYLIST').html('<p class="errormessage">' + erroricon + '<span class="text">No items in playlist</span></p>');
@@ -691,6 +694,7 @@
               $('#PLAYLIST').append('<p class="plitem">' + removebutton + typeicon + '<span class="text">' + command[i] + '</span></p>');
             }
             break;
+
           case "message":
             showMessage(command[1]);
             break;
