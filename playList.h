@@ -10,10 +10,10 @@
 #define PLAYLIST_STOPPED -1 /* do not change */
 
 enum streamType { HTTP_FILE,
-                  HTTP_STREAM,
+                  HTTP_FOUND,
                   HTTP_FAVORITE,
                   HTTP_PRESET };
-static const char* typeStr[] = { "FILE", "STREAM", "FAVO", "PRESET" };
+static const char* typeStr[] = { "FILE", "FOUND", "FAVO", "PRESET" };
 
 struct playListItem {
     streamType type;

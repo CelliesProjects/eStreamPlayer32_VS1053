@@ -1,684 +1,994 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<script>
-//setting for dev/debug */
-const debugip="192.168.0.101";  //change this to the esp32 ip for remote running of this page
-</script>
-<meta charset="utf-8">
-<meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1.0,user-scalable=no" />
-<link rel="icon" href="data:;base64,iVBORw0KGgo="><!--prevent favicon requests-->
-<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
-<script src="https://code.jquery.com/jquery-3.4.1.js"></script>
-<title>eStreamPlayer32</title>
-<meta name="description" content="eStreamPlayer32 interface">
-<meta name="author" content="Cellie">
-<script>!function(a,b){"function"==typeof define&&define.amd?define([],b):"undefined"!=typeof module&&module.exports?module.exports=b():a.ReconnectingWebSocket=b()}(this,function(){function a(b,c,d){function l(a,b){var c=document.createEvent("CustomEvent");return c.initCustomEvent(a,!1,!1,b),c}var e={debug:!1,automaticOpen:!0,reconnectInterval:1e3,maxReconnectInterval:3e4,reconnectDecay:1.5,timeoutInterval:2e3};d||(d={});for(var f in e)this[f]="undefined"!=typeof d[f]?d[f]:e[f];this.url=b,this.reconnectAttempts=0,this.readyState=WebSocket.CONNECTING,this.protocol=null;var h,g=this,i=!1,j=!1,k=document.createElement("div");k.addEventListener("open",function(a){g.onopen(a)}),k.addEventListener("close",function(a){g.onclose(a)}),k.addEventListener("connecting",function(a){g.onconnecting(a)}),k.addEventListener("message",function(a){g.onmessage(a)}),k.addEventListener("error",function(a){g.onerror(a)}),this.addEventListener=k.addEventListener.bind(k),this.removeEventListener=k.removeEventListener.bind(k),this.dispatchEvent=k.dispatchEvent.bind(k),this.open=function(b){h=new WebSocket(g.url,c||[]),b||k.dispatchEvent(l("connecting")),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","attempt-connect",g.url);var d=h,e=setTimeout(function(){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","connection-timeout",g.url),j=!0,d.close(),j=!1},g.timeoutInterval);h.onopen=function(){clearTimeout(e),(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onopen",g.url),g.protocol=h.protocol,g.readyState=WebSocket.OPEN,g.reconnectAttempts=0;var d=l("open");d.isReconnect=b,b=!1,k.dispatchEvent(d)},h.onclose=function(c){if(clearTimeout(e),h=null,i)g.readyState=WebSocket.CLOSED,k.dispatchEvent(l("close"));else{g.readyState=WebSocket.CONNECTING;var d=l("connecting");d.code=c.code,d.reason=c.reason,d.wasClean=c.wasClean,k.dispatchEvent(d),b||j||((g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onclose",g.url),k.dispatchEvent(l("close")));var e=g.reconnectInterval*Math.pow(g.reconnectDecay,g.reconnectAttempts);setTimeout(function(){g.reconnectAttempts++,g.open(!0)},e>g.maxReconnectInterval?g.maxReconnectInterval:e)}},h.onmessage=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onmessage",g.url,b.data);var c=l("message");c.data=b.data,k.dispatchEvent(c)},h.onerror=function(b){(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","onerror",g.url,b),k.dispatchEvent(l("error"))}},1==this.automaticOpen&&this.open(!1),this.send=function(b){if(h)return(g.debug||a.debugAll)&&console.debug("ReconnectingWebSocket","send",g.url,b),h.send(b);throw"INVALID_STATE_ERR : Pausing to reconnect websocket"},this.close=function(a,b){"undefined"==typeof a&&(a=1e3),i=!0,h&&h.close(a,b)},this.refresh=function(){h&&h.close()}}return a.prototype.onopen=function(){},a.prototype.onclose=function(){},a.prototype.onconnecting=function(){},a.prototype.onmessage=function(){},a.prototype.onerror=function(){},a.debugAll=!1,a.CONNECTING=WebSocket.CONNECTING,a.OPEN=WebSocket.OPEN,a.CLOSING=WebSocket.CLOSING,a.CLOSED=WebSocket.CLOSED,a});</script>
-<!-- https://www.w3schools.com/howto/howto_js_tabs.asp -->
-<style>
-*{box-sizing:border-box;}
-html,body{
-  position:absolute;
-  top:0;
-  bottom:0;
-  left:0;
-  right:0;
-  margin:0;
-  padding:0;
-  background:#f1f1f1;
-  text-align:center;
-  font-family:'Roboto',sans-serif;
-  overflow:hidden;
-}
-.noselect{
-  -webkit-touch-callout:none; /* iOS Safari */
-    -webkit-user-select:none; /* Safari */
-     -khtml-user-select:none; /* Konqueror HTML */
-       -moz-user-select:none; /* Firefox */
-        -ms-user-select:none; /* Internet Explorer/Edge */
-            user-select:none; /* Non-prefixed version,currently
-                                  supported by Chrome and Opera */
-}
-a{
-  color:black;
-  text-decoration:none;
-}
-#locationbar{
-  margin:0;
-  white-space:nowrap;
-  padding:0 8px;
-}
-#infobar{
-  margin:0;
-  overflow:hidden;
-  white-space:nowrap;
-}
-.tab{
-  overflow:auto;
-}
-#tabbar{
-  overflow:unset;
-  width:max-content;
-  overflow-y:unset;
-}
-.tab button{
-  background-color:lightgrey;
-  float:left;
-  border:none;
-  outline:none;
-  cursor:pointer;
-  padding:10px 20px;
-  transition:0.3s;
-  padding:10px 20px;
-  transition:0.3s;
-  margin:0 5px;
-  border-top-left-radius:5px;
-  border-top-right-radius:5px;
-  border-bottom-left-radius:0;
-  border-bottom-right-radius:0;
-  display:flex;
-  align-items:end;
-}
-.tab button:hover{
-  background-color:#ddd;
-}
-.tabcontent{
-  width:50%;
-  overflow-y:scroll;
-  text-align:left;
-  position:absolute;
-  bottom:0;
-  left:0;
-  right:0;
-  border:none;
-  background:darkgrey;
-}
-#HOME{
-  width:100%;
-  overflow-y:hidden;
-}
-#PLAYLIST{
-  right:0;
-  left:50%;
-}
-#uplink,.folderlink,.sdfolderlink,.filelink,.streamlink,.plitem,.favoritelink,.errormessage{
-  background:grey;
-  color:black;
-  margin:2px 0;
-  font-size:20px;
-  padding:2px 10px;
-  align-items:center;
-  overflow:hidden;
-  white-space:nowrap;
-  display:list-item;
-}
-.foldericon,.icon{
-  width:30px;
-  height:30px;
-  vertical-align:middle;
-  margin:2px 5px;
-  border-radius:5px;
-}
-.foldericon:hover,.plitem:hover,#uplink:hover,.folderlink:hover,.filelink:hover,.streamlink:hover,.favoritelink:hover{
-  cursor:pointer;
-  background:lightgrey;
-}
-.tabicon{
-  height:20px;
-  margin: 0px 3px -3px -3px;
-}
-#showstation,#streamtitle,#streaminfo{
-  text-align:center;
-  margin:15px;
-  overflow:hidden;
-  font-size:25px;
-}
-.text{
-  margin:10px;
-  vertical-align:middle;
-}
-#newurlbar{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:53px;
-  height:40px;
-  display:flex;
-  margin:0;
-}
-#newurl{
-  height:100%;
-  width:-webkit-fill-available;
-  text-align:center;
-  font-size:20px;
-}
-@-moz-document url-prefix(){
-  #newurl{
-    width:-moz-available;
-  }
-}
-#newurlbutton{
-  height:100%;
-  padding:0 20px;
-  font-size:20px;
-}
-#controlpanel{
-  position:absolute;
-  bottom:0;
-  left:0;
-  right:0;
-  background:inherit;
-}
-#playerstatus{
-  margin:0;
-  overflow:hidden;
-  white-space:nowrap;
-}
-.playercontrol{
-  display:inline;
-}
-.playercontrol .icon:hover{
-  cursor:pointer;
-}
-#volumeslider{
-  vertical-align:middle;
-}
-.addfolder:hover,.starticon:hover{
-  border:solid 1px black;
-}
-.deletebutton:hover{
-  border:solid 1px black;
-  background:red;
-}
-#overlay{
-  display:none;
-  position:absolute;
-  top:0;
-  bottom:0;
-  left:0;
-  right:0;
-  background:cadetblue;
-  color:inherit;
-  opacity:0.93;
-}
-#overlay:hover, #progress{
-  cursor:pointer;
-}
-#messageoverlay{
-  display:none;
-  position:absolute;
-  top:3px;
-  left:15%;
-  right:15%;
-  background:green;
-  border:solid 1px white;
-  border-radius:5px;
-  padding:10px;
-}
-progress{
-  background:#ffeeee;
-  border:none;
-}
-progress[value] {
-  -moz-appearance: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-progress::-webkit-progress-bar {
-  background: #ffeeee;
-}
-progress::-webkit-progress-value, progress::-moz-progress-bar  {
-  background: green;
-}
-#progress{
-  position:relative;
-  opacity:0;
-  top:-20px;
-}
-#progress, #progress2{
-  margin:0;
-  width:90%;
-  height:20px;
-}
-</style>
+  <script>
+    //setting for dev/debug */
+    const debugip = "192.168.0.101";  //change this to the esp32 ip for remote running of this page
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="minimal-ui,width=device-width,initial-scale=1">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo="><!--prevent favicon requests-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
+  <title>eStreamPlayer32</title>
+  <meta name="description" content="eStreamPlayer32 interface">
+  <meta name="author" content="Cellie">
+  <script>!function (a, b) { "function" == typeof define && define.amd ? define([], b) : "undefined" != typeof module && module.exports ? module.exports = b() : a.ReconnectingWebSocket = b() }(this, function () { function a(b, c, d) { function l(a, b) { var c = document.createEvent("CustomEvent"); return c.initCustomEvent(a, !1, !1, b), c } var e = { debug: !1, automaticOpen: !0, reconnectInterval: 1e3, maxReconnectInterval: 3e4, reconnectDecay: 1.5, timeoutInterval: 2e3 }; d || (d = {}); for (var f in e) this[f] = "undefined" != typeof d[f] ? d[f] : e[f]; this.url = b, this.reconnectAttempts = 0, this.readyState = WebSocket.CONNECTING, this.protocol = null; var h, g = this, i = !1, j = !1, k = document.createElement("div"); k.addEventListener("open", function (a) { g.onopen(a) }), k.addEventListener("close", function (a) { g.onclose(a) }), k.addEventListener("connecting", function (a) { g.onconnecting(a) }), k.addEventListener("message", function (a) { g.onmessage(a) }), k.addEventListener("error", function (a) { g.onerror(a) }), this.addEventListener = k.addEventListener.bind(k), this.removeEventListener = k.removeEventListener.bind(k), this.dispatchEvent = k.dispatchEvent.bind(k), this.open = function (b) { h = new WebSocket(g.url, c || []), b || k.dispatchEvent(l("connecting")), (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "attempt-connect", g.url); var d = h, e = setTimeout(function () { (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "connection-timeout", g.url), j = !0, d.close(), j = !1 }, g.timeoutInterval); h.onopen = function () { clearTimeout(e), (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "onopen", g.url), g.protocol = h.protocol, g.readyState = WebSocket.OPEN, g.reconnectAttempts = 0; var d = l("open"); d.isReconnect = b, b = !1, k.dispatchEvent(d) }, h.onclose = function (c) { if (clearTimeout(e), h = null, i) g.readyState = WebSocket.CLOSED, k.dispatchEvent(l("close")); else { g.readyState = WebSocket.CONNECTING; var d = l("connecting"); d.code = c.code, d.reason = c.reason, d.wasClean = c.wasClean, k.dispatchEvent(d), b || j || ((g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "onclose", g.url), k.dispatchEvent(l("close"))); var e = g.reconnectInterval * Math.pow(g.reconnectDecay, g.reconnectAttempts); setTimeout(function () { g.reconnectAttempts++, g.open(!0) }, e > g.maxReconnectInterval ? g.maxReconnectInterval : e) } }, h.onmessage = function (b) { (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "onmessage", g.url, b.data); var c = l("message"); c.data = b.data, k.dispatchEvent(c) }, h.onerror = function (b) { (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "onerror", g.url, b), k.dispatchEvent(l("error")) } }, 1 == this.automaticOpen && this.open(!1), this.send = function (b) { if (h) return (g.debug || a.debugAll) && console.debug("ReconnectingWebSocket", "send", g.url, b), h.send(b); throw "INVALID_STATE_ERR : Pausing to reconnect websocket" }, this.close = function (a, b) { "undefined" == typeof a && (a = 1e3), i = !0, h && h.close(a, b) }, this.refresh = function () { h && h.close() } } return a.prototype.onopen = function () { }, a.prototype.onclose = function () { }, a.prototype.onconnecting = function () { }, a.prototype.onmessage = function () { }, a.prototype.onerror = function () { }, a.debugAll = !1, a.CONNECTING = WebSocket.CONNECTING, a.OPEN = WebSocket.OPEN, a.CLOSING = WebSocket.CLOSING, a.CLOSED = WebSocket.CLOSED, a });</script>
+  <!-- https://www.w3schools.com/howto/howto_js_tabs.asp -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: 0;
+      padding: 0;
+      background: #f1f1f1;
+      text-align: center;
+      font-family: 'Roboto', sans-serif;
+      overflow: hidden;
+    }
+
+    .noselect {
+      -webkit-touch-callout: none;
+      /* iOS Safari */
+      -webkit-user-select: none;
+      /* Safari */
+      -khtml-user-select: none;
+      /* Konqueror HTML */
+      -moz-user-select: none;
+      /* Firefox */
+      -ms-user-select: none;
+      /* Internet Explorer/Edge */
+      user-select: none;
+      /* Non-prefixed version,currently supported by Chrome and Opera */
+    }
+
+    a {
+      color: black;
+      text-decoration: none;
+    }
+
+    #locationbar {
+      margin: 0;
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    #infobar {
+      margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .tabicon {
+      height: 20px;
+    }
+
+    .buttonbar button {
+      background-color: lightgrey;
+      display: flex;
+      align-items: end;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      margin: 0 5px;
+      padding: 6px 33px;
+      transition: 0.3s;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .buttonbar button:hover {
+      background-color: #ddd;
+    }
+
+    .tabcontent {
+      width: 50%;
+      overflow-y: scroll;
+      text-align: left;
+      position: absolute;
+      top: 50px;
+      bottom: 94px;
+      border: none;
+      background: darkgrey;
+    }
+
+    #PLAYLIST {
+      right: 0;
+      left: 50%;
+    }
+
+    #uplink,
+    .folderlink,
+    .filelink,
+    .streamlink,
+    .plitem,
+    .favoritelink,
+    .errormessage,
+    .foundlink {
+      background: grey;
+      color: black;
+      margin: 2px 0;
+      font-size: 20px;
+      padding: 2px 10px;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      display: list-item;
+    }
+
+    .errormessage {
+      background: cadetblue;
+    }
+
+    #searchbar {
+      display: flex;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 55px;
+      height: 40px;
+      margin: 0;
+      padding: 0;
+    }
+
+    #searchpattern {
+      height: 100%;
+      width: -webkit-fill-available;
+      text-align: center;
+      font-size: 20px;
+      z-index: 3;
+    }
+
+    @-moz-document url-prefix() {
+      #searchpattern {
+        width: -moz-available;
+      }
+    }
+
+    #searchbar input {
+      vertical-align: middle;
+      margin: 0;
+    }
+
+    .foldericon,
+    .icon {
+      width: 30px;
+      height: 30px;
+      vertical-align: middle;
+      margin: 2px 5px;
+      border-radius: 5px;
+    }
+
+    .foldericon:hover,
+    .plitem:hover,
+    #uplink:hover,
+    .folderlink:hover,
+    .filelink:hover,
+    .streamlink:hover,
+    .favoritelink:hover,
+    .foundlink:hover {
+      cursor: pointer;
+      background: lightgrey;
+    }
+
+    #showstation,
+    #streamtitle,
+    #streaminfo {
+      text-align: center;
+      margin: 15px;
+      overflow: hidden;
+      font-size: 25px;
+    }
+
+    .text {
+      margin: 10px;
+      vertical-align: middle;
+    }
+
+
+    #startsearch {
+      height: 100%;
+      padding: 0 20px;
+      font-size: 20px;
+      white-space: nowrap;
+    }
+
+    #startsearch .icon {
+      margin: 0 25px;
+    }
+
+    #controlpanel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: inherit;
+    }
+
+    #playerstatus {
+      margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .playercontrol {
+      display: inline-grid;
+      margin: 0;
+    }
+
+    #volumeslider {
+      vertical-align: middle;
+      height: 30px;
+    }
+
+    #volumeslider:hover,
+    #addfavorite:hover,
+    #startsearch,
+    .pagebutton,
+    .playercontrol .icon:hover {
+      cursor: pointer;
+    }
+
+    .addfolder:hover,
+    .starticon:hover {
+      border: solid 1px black;
+    }
+
+    .deletebutton:hover {
+      border: solid 1px black;
+      background: red;
+    }
+
+    #overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: cadetblue;
+      color: inherit;
+      opacity: 0.93;
+    }
+
+    #messageoverlay {
+      position: absolute;
+      top: 3px;
+      left: 15%;
+      right: 15%;
+      background: green;
+      border: solid 1px black;
+      border-radius: 5px;
+      padding: 10px;
+      display: none;
+    }
+
+    progress {
+      background: #ffeeee;
+      border: none;
+    }
+
+    progress[value] {
+      -moz-appearance: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    progress::-webkit-progress-bar {
+      background: #ffeeee;
+    }
+
+    progress::-webkit-progress-value,
+    progress::-moz-progress-bar {
+      background: green;
+    }
+
+    #progress2 {
+      margin: 0;
+      padding: 0;
+      width: 90%;
+      height: 20px;
+    }
+
+    #progressinput {
+      appearance: inherit;
+      height: 20px;
+      margin: auto 0;
+      position: relative;
+      top: -21px;
+      width: 91%;
+      opacity: 0;
+    }
+  </style>
 </head>
+
 <body class="noselect">
-<p id="locationbar">&nbsp;</p>
-<div class="tab">
-  <div id="tabbar">
-  <button class="tablinks" id="librarybutton"><img src="/libraryicon.svg" class="tabicon">LIBRARY</button>
-  <button class="tablinks" id="radiobutton"><img src="/radioicon.svg" class="tabicon">RADIO</button>
-  <button class="tablinks" id="favoritesbutton"><img src="/favoriteicon.svg" class="tabicon">ADDED</button>
+  <p id="locationbar">&nbsp;</p>
+  <div class="buttonbar">
+    <button class="tablinks" id="librarybutton" title="Local library">
+      <img src="/libraryicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="radiobutton" title="Preset radio">
+      <img src="/radioicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="favoritesbutton" title="Saved favorites">
+      <img src="/favoriteicon.svg" class="tabicon">
+    </button>
+    <button class="tablinks" id="searchbutton" title="Radio-browser results">
+      <img src="/searchicon.svg" class="tabicon">
+    </button>
   </div>
-</div>
-<div id="PLAYLIST" class="tabcontent">
-  <p class="errormessage">Waiting for playlist...</p>
-</div>
-<div id="LIBRARY" class="tabcontent">
-  <p class="errormessage"><svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z"/></svg>connect to library...</p>
-</div>
-<div id="WEBRADIO" class="tabcontent">
-</div>
-<div id="FAVORITES" class="tabcontent">
-  <p class="errormessage">Waiting for favorites...</p>
-</div>
-<div id="overlay">
-  <h3 id="showstation"></h3>
-  <p id="streamtitle"></p>
-  <p><progress id="progress2"></progress><input id="progress" type="range"></p>
-</div>
-<p id="newurlbar"><input type="text" id="newurl" placeholder="Enter a URL"><input id="newurlbutton" type="submit" value="Play URL"></p>
-<div id="controlpanel">
-  <p id="playerstatus">eStreamPlayer32</p>
-  <p class="playercontrol"><svg class="icon" id="previousbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
-  <p class="playercontrol" id="playpause"><svg class="icon" id="pausebutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
-  <p class="playercontrol"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/><path d="M0 0h24v24H0z" fill="none"/></svg></p>
-  <p class="playercontrol"><svg class="icon" id="infobutton" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-  <input class="playercontrol" type="range" min="60" max="100" id="volumeslider" value="0">
-  <p class="playercontrol"><svg class="icon" id="clearbutton" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/><path fill="none" d="M0 0h24v24H0z"/></svg></p>
-</div>
-<div id="messageoverlay">message overlay</div>
-<script>
-const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
-const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
-const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
-const removebutton='<img src="/deleteicon.svg" class="icon deletebutton"/>';
-const pausebutton = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
-const playbutton = '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>';
+  <div id="PLAYLIST" class="tabcontent">
+    <p class="errormessage"><span class="text"><img src="/emptyicon.svg" class="icon">Waiting for playlist...</span></p>
+  </div>
+  <div id="LIBRARY" class="tabcontent">
+    <p class="errormessage">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+        <path d="M0 0h24v24H0z" fill="none" />
+        <path
+          d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4c-4.42 0-8 3.58-8 8H1l4 4 4-4H6z" />
+      </svg>
+      <span class="text">Waiting for library...</span>
+    </p>
+  </div>
+  <div id="WEBRADIO" class="tabcontent"></div>
+  <div id="FAVORITES" class="tabcontent">
+    <p class="errormessage"><img src="/emptyicon.svg" class="icon"><span class="text">Waiting for favorites...</span>
+    </p>
+  </div>
+  <div id="SEARCH" class="tabcontent">
+    <p class="errormessage"><img src="/searchicon.svg" class="icon">
+      <span class="text">Use the search to find music on radio-browser.info</span>
+    </p>
+  </div>
+  <div id="overlay">
+    <h3 id="showstation"></h3>
+    <p id="streamtitle"></p>
+    <p><progress id="progress2"></progress><input id="progressinput" type="range" min="0"></p>
+  </div>
+  <p id="searchbar"><input type="text" id="searchpattern" placeholder="Search for radio stations">
+    <button id="startsearch" type="button" onclick="currentPage = 0;getStations(searchpattern.value, currentPage);">
+      <img src="/searchicon.svg" class="icon"></button>
+  </p>
+  <div id="controlpanel">
+    <p id="playerstatus">eStreamPlayer32</p>
+    <p class="playercontrol" title="Previous item"><svg class="icon" id="previousbutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+        <path d="M0 0h24v24H0z" fill="none" />
+      </svg>
+    </p>
+    <p class="playercontrol" id="playpause" title="Play/pause"><svg class="icon" id="pausebutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        <path d="M0 0h24v24H0z" fill="none" />
+      </svg>
+    </p>
+    <p class="playercontrol" title="Next item"><svg class="icon" id="nextbutton" xmlns="http://www.w3.org/2000/svg"
+        width="24" height="24" viewBox="0 0 24 24">
+        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+        <path d="M0 0h24v24H0z" fill="none" />
+      </svg>
+    </p>
+    <p class="playercontrol" title="Show/hide stream info"><svg class="icon" id="infobutton"
+        xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
+        <path d="M0 0h24v24H0V0z" fill="none" />
+        <path
+          d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+      </svg>
+    </p>
+    <p class="playercontrol" title="Volume control">
+      <input type="range" min="60" max="100" id="volumeslider" value="0">
+    </p>
+    <p class="playercontrol" title="Clear playlist"><svg class="icon" id="clearbutton"
+        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <path
+          d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
+        <path fill="none" d="M0 0h24v24H0z" />
+      </svg>
+    </p>
+  </div>
+  <div id="messageoverlay"></div>
+  <script>
+    const http_host = "http://" + (window.location.hostname ? window.location.hostname : debugip);
+    const ws_host = "ws://" + (window.location.hostname ? window.location.hostname : debugip) + "/ws";
+    const erroricon = '<svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>';
+    const removebutton = '<img src="/deleteicon.svg" class="icon deletebutton"/>';
+    const pausebutton = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>';
+    const playbutton = '<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>';
 
-var libraryURL = "";
-var libraryUser = "";
-var libraryPwd = "";
-var currentpath = '/';
-var currentItem = -1;
-var scrollPos=[]; //array to keep track of nested folders
+    var libraryURL = "";
+    var libraryUser = "";
+    var libraryPwd = "";
+    var currentpath = '/';
+    var currentItem = -1;
+    var scrollPos = []; //array to keep track of nested folders
 
-function updateLocationBar(){
-  $('#locationbar').html("Library path: " + currentpath);
-}
-
-function updateLibraryFolder(folder,oldfolder,restorescroll){
-  $.get(libraryURL + "?folder=" + encodeURIComponent(folder),
-  {headers: {'Authorization': 'Basic ' + btoa(libraryUser + ":" + libraryPwd)}})
-  .done(function(data) {
-    $('#LIBRARY').html(data).scrollTop(0);
-    if(restorescroll)$('#LIBRARY').scrollTop(scrollPos.pop());
-    $('#LIBRARY').css({"opacity":1});
-    updateLocationBar();
-  })
-  .fail(function(){
-    $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "' + libraryURL + "?folder=" + encodeURIComponent(folder) + '"</p>');
-    currentpath=oldfolder;
-    $('#LIBRARY').css({"opacity":1});
-  });
-}
-
-function getPresets(){
-  $.get(http_host + "/stations")
-  .done(function(data){
-    var stations = data.split('\n');
-    $('#WEBRADIO').html('');
-    stations.forEach(function(item){
-      if(item)$('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item + '</span></p>');
-    })
-  })
-  .fail(function(){
-    $('#WEBRADIO').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open station list</p>');
-  });
-}
-
-var overlaytimer;
-function setOverlayTimeOut() {
-  clearTimeout(overlaytimer);
-  overlaytimer = setTimeout(function(){$('#overlay').css('display', 'block');}, 30000);
-}
-
-var onComplete = function() {
-  $('#messageoverlay').html('').width('0');
-};
-
-function showMessage(message){
-  $('#messageoverlay').stop().html(message).width('').css("opacity","1").show().animate(
-    {"opacity":"0"},
-    {queue:false,
-      duration:1100,
-      complete: onComplete
+    function updateLocationBar() {
+      $('#locationbar').html("Library path: " + currentpath);
     }
-)};
 
-function refreshAllTabs() {
-  $.get(http_host + "/scripturl")
-  .done(function(data){
-    const libraryData = data.split("\n");
-    libraryURL = libraryData[0].trim();
-    if (libraryData.length > 2) {
-      libraryUser = libraryData[1].trim();
-      libraryPwd = libraryData[2].trim();
+    function updateLibraryFolder(folder, oldfolder, restorescroll) {
+      $.get(libraryURL + "?folder=" + encodeURIComponent(folder),
+        { headers: { 'Authorization': 'Basic ' + btoa(libraryUser + ":" + libraryPwd) } })
+        .done(function (data) {
+          $('#LIBRARY').html(data).scrollTop(0);
+          if (restorescroll) $('#LIBRARY').scrollTop(scrollPos.pop());
+          $('#LIBRARY').css({ "opacity": 1 });
+          updateLocationBar();
+        })
+        .fail(function () {
+          $('#LIBRARY').html('<p class="errormessage">' + erroricon + 'ERROR: Could not open "' + libraryURL + "?folder=" + folder + '"</p>');
+          currentpath = oldfolder;
+          $('#LIBRARY').css({ "opacity": 1 });
+        });
     }
-    console.log('script url: ' + libraryURL);
-    console.log('user: ' + libraryUser);
-    console.log('password: ' + libraryPwd);
-    scrollPos.push($('#LIBRARY').scrollTop());
-    updateLibraryFolder(currentpath, '', true);
 
-  })
-  .fail(function(data){
-    console.log("could not get script url - message: " + data);
-  })
-  .always(function(){
-    setOverlayTimeOut();
-    getPresets();
-  })
-}
+    function getPresets() {
+      $.get(http_host + "/stations")
+        .done(function (data) {
+          var stations = data.split('\n');
+          $('#WEBRADIO').html('');
+          stations.forEach(function (item) {
+            if (item) $('#WEBRADIO').append('<p class="streamlink"><img src="/radioicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon"><span class="text">' + item + '</span></p>');
+          })
+        })
+        .fail(function () {
+          $('#WEBRADIO').html('<p class="errormessage">' + erroricon + '<span class="text">ERROR: Could not open station list</span></p>');
+        });
+    }
 
-$(document).ready(function(){
-  const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
-  var ws = new ReconnectingWebSocket(ws_host, null, {debug: false, reconnectInterval: 3500});
+    var overlaytimer;
+    function setOverlayTimeOut() {
+      clearTimeout(overlaytimer);
+      overlaytimer = setTimeout(function () { $('#overlay').css('display', 'block'); }, 30000);
+    }
 
-  ws.onmessage = function(e){
-    var command = e.data.split("\n");
-    switch(command[0]){
-      case "currentPLitem":
-        $('#progress, #progress2').hide();
-        $('.plitem').css("background-color","");
-        currentItem = parseInt(command[1]);
-        if(-1 == currentItem){
-          $('#playerstatus, #showstation').html("Nothing playing");
-        }else{
-          $('.plitem').eq(command[1]).css("background-color","cadetblue");
-        }
-      break;
-      case "playlist":
-        $('#PLAYLIST').html('');
-        console.log("Items in playlist:" + (command.length - 2) / 2);
-        var typeicon = "";
-        for (var i = 1; i < command.length - 1; i = i + 2){
-          switch (command[i + 1]){
-            case "FILE" :
-              typeicon = '<img src="/libraryicon.svg" class="icon">';
-              break;
-            case "STREAM" :
-              typeicon = '<img src="/streamicon.svg" class="icon">';
-              break;
-            case "FAVO" :
-              typeicon = '<img src="/favoriteicon.svg" class="icon">';
-              break;
-            case "PRESET" :
-              typeicon = '<img src="/radioicon.svg" class="icon">';
-              break;
-            default :
-              typeicon = "";
-              break;
+    var onComplete = function () {
+      $('#messageoverlay').css('display', 'none').html('');
+    };
+
+    function showMessage(message) {
+      const error = message.startsWith('ERROR:') ? true : false;
+      $('#messageoverlay').css('background', error ? 'crimson' : 'green');
+      $('#messageoverlay').html(message).css('display', 'block').stop().css('opacity', '1')
+        .animate(
+          { "opacity": "0" },
+          {
+            queue: false,
+            duration: error ? 10000 : 5000,
+            complete: onComplete
           }
-          $('#PLAYLIST').append('<p class="plitem">' + removebutton + typeicon + '<span class="text">' + command[i] + '</span></p>');
+        )
+    };
+
+    function refreshAllTabs() {
+      $.get(http_host + "/scripturl")
+        .done(function (data) {
+          const libraryData = data.split("\n");
+          libraryURL = libraryData[0].trim();
+          if (libraryData.length > 2) {
+            libraryUser = libraryData[1].trim();
+            libraryPwd = libraryData[2].trim();
+          }
+          scrollPos.push($('#LIBRARY').scrollTop());
+          updateLibraryFolder(currentpath, '', true);
+
+        })
+        .fail(function (data) {
+          console.log("could not get script url - message: " + data);
+        })
+        .always(function () {
+          setOverlayTimeOut();
+          getPresets();
+        })
+    }
+
+    // Set a different user agent, see: https://gist.github.com/thorsten/148812e9cc4fb6a19215ce22afd4e5a8
+    function setUserAgent(window, userAgent) {
+      // Works on Firefox, Chrome, Opera and IE9+
+      if (navigator.__defineGetter__) {
+        navigator.__defineGetter__('userAgent', function () {
+          return userAgent;
+        });
+      } else if (Object.defineProperty) {
+        Object.defineProperty(navigator, 'userAgent', {
+          get: function () {
+            return userAgent;
+          }
+        });
+      }
+      // Works on Safari
+      if (window.navigator.userAgent !== userAgent) {
+        var userAgentProp = {
+          get: function () {
+            return userAgent;
+          }
+        };
+        try {
+          Object.defineProperty(window.navigator, 'userAgent', userAgentProp);
+        } catch (e) {
+          window.navigator = Object.create(navigator, {
+            userAgent: userAgentProp
+          });
         }
-      break;
-      case "message":
-        showMessage(command[1]);
-      break;
-
-      case "volume":
-        if (command[1])$('#volumeslider').val(command[1]);
-      break;
-
-      case "showstation":
-        $('#playerstatus, #showstation').html(command[1]);
-        if (command[2] == "STREAM" || command[2] == "FAVO") $('#showstation').prepend(addicon);
-      break;
-
-      case "streamtitle":
-        $('#streamtitle').html(command[1]);
-      break;
-
-      case "progress":
-        //console.log("progress: " + command[1] + "/" + command[2]);
-        $('#progress, #progress2').show();
-        $('#progress').attr("min", 0);
-        $('#progress').attr("max", command[2]);
-        $('#progress').attr("value", command[1]);
-
-        $('#progress2').attr("max", command[2]);
-        $('#progress2').attr("value", command[1]);
-      break;
-
-      case "status":
-        if(command[1]=="paused")$('#playpause').html('<img class="icon" id="playbutton" src="' + http_host + '/starticon.svg"</img>');
-        if(command[1]=="playing")$('#playpause').html('<img class="icon" id="pausebutton" src="' + http_host + '/pauseicon.svg"></img>');
-      break;
-/*
-      case "bitrate":
-        if(command[1])$('#bitrate').html("Bitrate: "+command[1]+"kbps");
-      break;
-
-      case "streaminfo":
-        $('#streaminfo').html(command[1]);
-      break;
-*/
-      case "favorites":
-        var content = [];
-        for(i = 1; i < command.length - 1; i++)
-          content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i] + '</span></p>');
-        content.sort();
-        $('#FAVORITES').html(content);
-      break
-      default:break;
+      }
     }
-  };
 
-  ws.onopen = function(event){
-    console.log('[WebSocket] Connected');
-    $('#streamtitle').html('');
-    refreshAllTabs();
-  }
+    /* see https://de1.api.radio-browser.info/ for api info */
+    /*
+    It is not possible to do a reverse DNS from a browser yet.
+    The first part (a normal dns resolve) could be done from a browser by doing DOH (DNS over HTTPs)
+    to one of the providers out there. (google, quad9,...)
+    So we have to fallback to ask a single server for a list.
+    */
 
-  ws.onclose = function(event){
-    console.log('[WebSocket] Connection died, code=' + event.code + ' reason=' + event.reason);
-    if ('visible' === document.visibilityState) {
-      $('#PLAYLIST').html('<p class="errormessage">'+ erroricon + 'No WS connection. Reconnecting...</p>');
-      ws.open();
-    }
-  }
-
-  ws.onerror = function(error){
-    console.log('[WebSocket] Error: ' + error.message);
-    ws.refresh();
-  }
-
-  $('.tablinks').on('click', function(){
-    $('.tablinks').css("background-color", "");
-    $(this).css("background-color", "darkgrey")
-    switch($(this).attr('id')){
-      case 'librarybutton':
-        $('#WEBRADIO, #FAVORITES').hide();
-        $('#LIBRARY').show();
-      break;
-      case 'radiobutton':
-        $('#LIBRARY, #FAVORITES').hide();
-        $('#WEBRADIO').show();
-      break;
-      case 'favoritesbutton':
-        $('#LIBRARY, #WEBRADIO').hide();
-        $('#FAVORITES').show();
-      break;
-      default:
-    }
-  });
-
-  $('body').on('click','#uplink', function(){
-    $('#LIBRARY').css({"opacity":0.5});
-    const oldpath = currentpath;
-    if(currentpath.includes('/'))currentpath = currentpath.split('/').slice(0,-1).join('/');
-    if(!currentpath) currentpath = '/';
-    updateLibraryFolder(currentpath,oldpath,true);
-  });
-
-  $('body').on('click','.folderlink', function(){
-    $('#LIBRARY').css({"opacity":0.5});
-    const oldpath = currentpath;
-    if ('/' != currentpath) currentpath += '/';
-    currentpath += $(this).text();
-    scrollPos.push($('#LIBRARY').scrollTop());
-    updateLibraryFolder(currentpath, oldpath);
-  });
-
-  $('body').on('click','.filelink',function(e){
-    ws.send("filetoplaylist\n" + libraryURL.substring(0, libraryURL.lastIndexOf('/')) + currentpath+'/'+$(this).text());
-    e.stopPropagation();
-  });
-
-  $('body').on('click','.filelink .starticon',function(e){
-    ws.send("_filetoplaylist\n"+libraryURL.substring(0,libraryURL.lastIndexOf('/',)) + currentpath + '/'+$(this).parent().text());
-    e.stopPropagation();
-  });
-
-  $('body').on('click','.streamlink .starticon',function(e){
-    ws.send("_presetstation\n" + $(this).parent().index());
-    e.stopPropagation();
-  });
-
-  $('body').on('click','.favoritelink',function(e){
-    ws.send("favoritetoplaylist\n" + $(this).text());
-    e.stopPropagation();
-  });
-
-  $('body').on('click','.favoritelink .starticon',function(e){
-    ws.send("_favoritetoplaylist\n" + $(this).parent().text());
-    e.stopPropagation();
-  });
-
-  $('body').on('click','.favoritelink .deletebutton',function(e){
-    e.stopPropagation();
-    if(!confirm("Are you sure to delete this favorite?"))return;
-    ws.send("deletefavorite\n" + ($(this).parent().text()));
-  });
-
-  $('body').on('click','.addfolder, .folderlink .starticon',function(e){
-    //TODO: something goes wrong here!
-    // we have to check in the .done callback if there are multiple '/' chars at the start of the path
-    var location = libraryURL.substring(0, libraryURL.lastIndexOf('/', libraryURL.length));
-    var requestpath = currentpath + "/" + $(this).parent().text();
-    var content = ($(this).hasClass('starticon')) ? "_filetoplaylist\n" : "filetoplaylist\n";
-    $.get(libraryURL + "?folder=" + encodeURIComponent(currentpath) + "/" + encodeURIComponent($(this).parent().text()))
-    .done(function(data){
-      //make an invisible navList
-      const nList = document.createElement("div");
-      nList.style.display = "none";
-      nList.id = "invisFolder";
-      document.body.appendChild(nList);
-      $(nList).html(data);
-      if(requestpath.startsWith("//"))requestpath = requestpath.substring(1);  //TODO: FIX! see above
-      $('#invisFolder .filelink').each(function(){
-        content += location+requestpath+'/'+$(this).text()+"\n";
+    /**
+     * Ask a specified server for a list of all other server.
+     */
+    function get_radiobrowser_base_urls() {
+      return new Promise((resolve, reject) => {
+        var request = new XMLHttpRequest()
+        // If you need https, please use the fixed server fr1.api.radio-browser.info for this request only
+        request.open('GET', 'http://all.api.radio-browser.info/json/servers', true);
+        request.onload = function () {
+          if (request.status >= 200 && request.status < 300) {
+            var items = JSON.parse(request.responseText).map(x => "https://" + x.name);
+            resolve(items);
+          } else
+            reject(request.statusText);
+        }
+        request.send();
       });
-      document.body.removeChild(nList);
-      ws.send(content);
-    });
-    e.stopPropagation();
-  });
+    }
 
-  $('body').on('click','.plitem',function(){
-    ws.send("playitem\n" + ($(this).index('.plitem')));
-  });
+    /**
+     * Ask a server for its settings.
+     */
+    function get_radiobrowser_server_config(baseurl) {
+      return new Promise((resolve, reject) => {
+        var request = new XMLHttpRequest()
+        request.open('GET', baseurl + '/json/config', true);
 
-  $('body').on('click','.plitem .deletebutton',function(e){
-    ws.send("deleteitem\n" + ($(this).index('.deletebutton')));
-    e.stopPropagation();
-  });
+        request.onerror = function (e) {
+          e.preventDefault();
+          console.log('Server config could not be retrieved.\nError: ' + request.statusText + '\nRetrying');
+          getStations(searchquery, currentPage);
+        }
 
-  $('body').on('click','#pausebutton',function(){
-    ws.send("pause\n" + $('#progress').attr("value"));
-  });
+        request.onload = function () {
+          if (request.status >= 200 && request.status < 300) {
+            var items = JSON.parse(request.responseText);
+            resolve(items);
+          } else
+            reject(request.statusText);
+        }
+        request.send();
+      });
+    }
 
-  $('body').on('click','#playbutton',function(){
-    ws.send("unpause\n");
-  });
+    /**
+     * Get a random available radio-browser server.
+     * Returns: string - base url for radio-browser api
+     */
+    function get_radiobrowser_base_url_random() {
+      return get_radiobrowser_base_urls().then(hosts => {
+        var item = hosts[Math.floor(Math.random() * hosts.length)];
+        return item;
+      });
+    }
 
-  $('body').on('click','#previousbutton',function(){
-    if (currentItem > 0)
-      ws.send("previous\n");
-  });
-
-  $('body').on('click','#nextbutton',function(){
-    if (currentItem < $('.plitem').length - 1)
-      ws.send("next\n");
-  });
-
-  $('body').on('click','#clearbutton',function(){
-    ws.send("clearlist\n");
-  });
-
-  $('body').on('click','.streamlink',function(){
-    ws.send("presetstation\n" + $(this).index());
-  });
-
-  $('#newurl').on('keydown', function(e) {
-    if(e.which == 13)$('#newurlbutton').click();
-  });
-
-  $('body').on('click','#newurlbutton',function(){
-    if (!$('#newurl').val())return;
-    if (!$('#newurl').val().startsWith('http')) {
-        alert("The pasted URL has to start with the protocol.\n\nLike this:\n\n     http://...     or     https://...");
+    async function addIfUnique(item, index, arr) {
+      if (index === itemsPerPage) {
+        SEARCH.innerHTML += '<p class="errormessage pagebutton" id="nextpage"><img src="/searchicon.svg" class="icon"><span class="text">More \'' + searchquery + '\' results</span></p>';
         return;
+      }
+      const pos = item.url.search(/[;?]/g);
+      const strippedurl = item.url.substring(0, pos !== -1 ? pos : item.url.length);
+      var cnt = 0;
+      while (cnt < index) if (arr[cnt++].url == strippedurl) return;
+
+      const title = 'CODEC: ' + item.codec +
+        (item.bitrate ? ('\nBITRATE: ' + item.bitrate + 'kbps') : '') +
+        (item.language ? ('\nLANGUAGE: ' + item.language) : '');
+
+      SEARCH.innerHTML += '<p class="foundlink" data-name="' + item.name + '" data-url="' + strippedurl +
+        '" data-station-uuid="' + item.stationuuid + '"title="' + title +
+        '"><img src="/searchicon.svg" class="icon"><img src="/starticon.svg" class="icon starticon">' +
+        (item.url.startsWith('https') ? '<img src="/nosslicon.svg" class="icon nosslicon" title="Click here to start this url in unsecure (fast) mode.\n(which might fail)">' : '') +
+        '<span class="text">' + item.name + '</span></p>';
     }
-    var newurl = $('#newurl').val();
-    ws.send("newurl\n" + newurl.trim());
-    $('#newurl').val('');
-  });
+    const itemsPerPage = 30;
+    var baseurl = '';
+    var currentPage = 0;
+    var searchquery = '';
 
-  $('#infobutton').on('mouseup', function(){
-    $('#overlay').css('display',($('#overlay').css('display') === 'block') ? 'none' : 'block');
-    setOverlayTimeOut();
-  });
-
-  $('#overlay').on('click','#addfavorite',function(e){
-    e.stopPropagation();
-    const filename = prompt("Enter a filename", $('#showstation').text());
-    if (!filename) return;
-    if (! /^[^\\/:\*\?"<>\|]+$/.test(filename)) {
-      showMessage("not saved - illegal char in name");
-      return;
+    async function getStations(query, page) {
+      if (!query) return;
+      searchquery = query;
+      SEARCH.innerHTML = '<p class="errormessage"><img src="/searchicon.svg" class="icon"><span class="text">Searching...</span></p>';
+      searchpattern.disabled = true;
+      searchpattern.placeholder = 'Searching. Please wait...';
+      get_radiobrowser_base_url_random().then((x) => {
+        baseurl = x;
+        return get_radiobrowser_server_config(x);
+      }).then(config => {
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", baseurl + '/json/stations/search?name=' + query + '&offset=' + (page * itemsPerPage) + '&limit=' + (itemsPerPage + 1) + '&hidebroken=true');
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            const items = JSON.parse(xhr.responseText);
+            SEARCH.innerHTML = '';
+            if (items.length) {
+              if (currentPage)
+                SEARCH.innerHTML += '<p class="errormessage pagebutton" id="previouspage"><img src="/searchicon.svg" class="icon"><span class="text">Previous \'' + searchquery + '\' results</span></p>';
+              items.forEach(addIfUnique);
+            } else
+              SEARCH.innerHTML = '<p class="errormessage">' + erroricon + '<span class="text">Search for \'' + query + '\' has no results</span></p>';
+            searchpattern.placeholder = 'Search for radio stations';
+            searchpattern.disabled = false;
+          }
+        };
+        xhr.send();
+        searchbutton.click();
+        overlay.click();
+        searchpattern.value = '';
+      })
     }
-    ws.send("currenttofavorites\n" + filename);
-  });
 
-  $('body').on('change','#volumeslider',function(e){
-    ws.send("volume\n" + this.value);
-  });
+    $(document).ready(function () {
+      const addicon = '<svg class="icon" id="addfavorite" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M0 0h24v24H0z" fill="none"/><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
+      var ws = new ReconnectingWebSocket(ws_host, null, { debug: false, reconnectInterval: 3500 });
 
-  $('#overlay').on('click', function(){
-    $(this).hide();
-  });
+      ws.onmessage = function (e) {
+        var command = e.data.split("\n");
+        switch (command[0]) {
+          case "currentPLitem":
+            $('#progress2, #progressinput').hide();
+            $('.plitem').css("background-color", "");
+            currentItem = parseInt(command[1]);
+            if (-1 == currentItem) {
+              $('#playerstatus, #showstation').html("Nothing playing");
+            } else {
+              $('.plitem').eq(command[1]).css("background-color", "cadetblue");
+            }
+            break;
 
-  $('html').on('mouseover mousedown mouseup mousewheel mousemove input scroll resize contextmenu touchstart touchend touchmove touchcancel', function() {
-    setOverlayTimeOut();
-  });
+          case "playlist":
+            if (command[1] == '') {
+              $('#PLAYLIST').html('<p class="errormessage">' + erroricon + '<span class="text">No items in playlist</span></p>');
+              return;
+            }
+            $('#PLAYLIST').html('');
+            var typeicon = "";
+            for (var i = 1; i < command.length - 1; i += 2) {
+              switch (command[i + 1]) {
+                case "FILE":
+                  typeicon = '<img src="/libraryicon.svg" class="icon">';
+                  break;
+                case "FOUND":
+                  typeicon = '<img src="/searchicon.svg" class="icon">';
+                  break;
+                case "FAVO":
+                  typeicon = '<img src="/favoriteicon.svg" class="icon">';
+                  break;
+                case "PRESET":
+                  typeicon = '<img src="/radioicon.svg" class="icon">';
+                  break;
+                default:
+                  typeicon = "";
+                  break;
+              }
+              $('#PLAYLIST').append('<p class="plitem">' + removebutton + typeicon + '<span class="text">' + command[i] + '</span></p>');
+            }
+            break;
 
-  $('#progress').on('click touchend', function(e) {
-    e.stopPropagation();
-    ws.send("jumptopos\n" + this.value)
-  });
+          case "message":
+            showMessage(command[1]);
+            break;
 
-  document.addEventListener('visibilitychange', e =>{
-    switch (document.visibilityState) {
-      case 'visible' :
-        ws.open();
-      break;
-      case 'hidden' :
-        ws.close();
-      break;
-      default :
-    }
-  });
+          case "volume":
+            if (command[1]) $('#volumeslider').val(command[1]);
+            break;
 
-  document.addEventListener('unload', (event) => {
-    ws.close();
-  });
+          case "showstation":
+            $('#playerstatus, #showstation').html(command[1]);
+            if (command[2] == "FOUND" || command[2] == "FAVO") $('#showstation').prepend('<span title="Click to save this url to favorites">' + addicon + '</span>');
+            break;
 
-  $('.tabcontent').css('top',$('.tab').height() + $('#locationbar').height() + "px");
-  $('.tabcontent').css('bottom',$('#controlpanel').height() + $('#newurlbar').height() + "px");
-  $('#radiobutton').click();
-});
-</script>
+          case "streamtitle":
+            $('#streamtitle').html(command[1]);
+            break;
+
+          case "progress":
+            $('#progress2, #progressinput').show();
+            $('#progress2').attr("value", command[1]);
+            $('#progress2').attr("max", command[2]);
+            $('#progressinput').attr("max", command[2]);
+            break;
+
+          case "status":
+            if (command[1] == "paused") $('#playpause').html('<img class="icon" id="playbutton" src="' + http_host + '/starticon.svg"</img>');
+            if (command[1] == "playing") $('#playpause').html('<img class="icon" id="pausebutton" src="' + http_host + '/pauseicon.svg"></img>');
+            break;
+          /*
+                case "bitrate":
+                  if(command[1])$('#bitrate').html("Bitrate: "+command[1]+"kbps");
+                break;
+          
+                case "streaminfo":
+                  $('#streaminfo').html(command[1]);
+                break;
+          */
+          case "favorites":
+            var content = [];
+            for (i = 1; i < command.length - 1; i++)
+              content.push('<p class="favoritelink">' + removebutton + '<img src="/starticon.svg" class="icon starticon"><span class="text">' + command[i] + '</span></p>');
+            content.sort();
+            $('#FAVORITES').html(content);
+            break
+          default: break;
+        }
+      };
+
+      ws.onopen = function () {
+        console.log('Websocket connected');
+        $('#streamtitle').html('');
+      }
+
+      ws.onclose = function () {
+        console.log('Websocket closed');
+        if ('visible' === document.visibilityState) {
+          $('#PLAYLIST').html('<p class="errormessage">' + erroricon + '<span class="text">No WS connection. Reconnecting...</span></p>');
+          ws.open();
+        }
+      }
+
+      ws.onerror = function () {
+        ws.refresh();
+      }
+
+      $('.tablinks').on('click', function () {
+        $('.tablinks').css("background-color", "");
+        $(this).css("background-color", "darkgrey")
+        switch ($(this).attr('id')) {
+          case 'librarybutton':
+            $('#WEBRADIO, #FAVORITES, #SEARCH').hide();
+            $('#LIBRARY').show();
+            break;
+          case 'radiobutton':
+            $('#LIBRARY, #FAVORITES, #SEARCH').hide();
+            $('#WEBRADIO').show();
+            break;
+          case 'favoritesbutton':
+            $('#LIBRARY, #WEBRADIO, #SEARCH').hide();
+            $('#FAVORITES').show();
+            break;
+          case 'searchbutton':
+            $('#LIBRARY, #WEBRADIO, #FAVORITES').hide();
+            $('#SEARCH').show();
+            break;
+          default:
+        }
+      });
+
+      $('body').on('click', '#uplink', function () {
+        $('#LIBRARY').css({ "opacity": 0.5 });
+        const oldpath = currentpath;
+        if (currentpath.includes('/')) currentpath = currentpath.split('/').slice(0, -1).join('/');
+        if (!currentpath) currentpath = '/';
+        updateLibraryFolder(currentpath, oldpath, true);
+      });
+
+      $('body').on('click', '.folderlink', function () {
+        $('#LIBRARY').css({ "opacity": 0.5 });
+        const oldpath = currentpath;
+        if ('/' != currentpath) currentpath += '/';
+        currentpath += $(this).text();
+        scrollPos.push($('#LIBRARY').scrollTop());
+        updateLibraryFolder(currentpath, oldpath);
+      });
+
+      $('body').on('click', '.filelink', function (e) {
+        ws.send("filetoplaylist\n" + libraryURL.substring(0, libraryURL.lastIndexOf('/')) + currentpath + '/' + $(this).text());
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.filelink .starticon', function (e) {
+        ws.send("_filetoplaylist\n" + libraryURL.substring(0, libraryURL.lastIndexOf('/',)) + currentpath + '/' + $(this).parent().text());
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.streamlink .starticon', function (e) {
+        ws.send("_presetstation\n" + $(this).parent().index());
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.favoritelink', function (e) {
+        ws.send("favoritetoplaylist\n" + $(this).text());
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.favoritelink .starticon', function (e) {
+        ws.send("_favoritetoplaylist\n" + $(this).parent().text());
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.favoritelink .deletebutton', function (e) {
+        e.stopPropagation();
+        if (!confirm("Are you sure to delete this favorite?")) return;
+        ws.send("deletefavorite\n" + ($(this).parent().text()));
+      });
+
+      $('body').on('click', '.addfolder, .folderlink .starticon', function (e) {
+        //TODO: something goes wrong here!
+        // we have to check in the .done callback if there are multiple '/' chars at the start of the path
+        var location = libraryURL.substring(0, libraryURL.lastIndexOf('/', libraryURL.length));
+        var requestpath = currentpath + "/" + $(this).parent().text();
+        var content = ($(this).hasClass('starticon')) ? "_filetoplaylist\n" : "filetoplaylist\n";
+        $.get(libraryURL + "?folder=" + encodeURIComponent(currentpath) + "/" + encodeURIComponent($(this).parent().text()))
+          .done(function (data) {
+            //make an invisible navList
+            const nList = document.createElement("div");
+            nList.style.display = "none";
+            nList.id = "invisFolder";
+            document.body.appendChild(nList);
+            $(nList).html(data);
+            if (requestpath.startsWith("//")) requestpath = requestpath.substring(1);  //TODO: FIX! see above
+            $('#invisFolder .filelink').each(function () {
+              content += location + requestpath + '/' + $(this).text() + "\n";
+            });
+            document.body.removeChild(nList);
+            ws.send(content);
+          });
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '.plitem', function () {
+        ws.send("playitem\n" + ($(this).index('.plitem')));
+      });
+
+      $('body').on('click', '.plitem .deletebutton', function (e) {
+        ws.send("deleteitem\n" + ($(this).index('.deletebutton')));
+        e.stopPropagation();
+      });
+
+      $('body').on('click', '#pausebutton', function () {
+        ws.send("pause\n" + $('#progress').attr("value"));
+      });
+
+      $('body').on('click', '#playbutton', function () {
+        ws.send("unpause\n");
+      });
+
+      $('body').on('click', '#previousbutton', function () {
+        if (currentItem > 0)
+          ws.send("previous\n");
+      });
+
+      $('body').on('click', '#nextbutton', function () {
+        if (currentItem < $('.plitem').length - 1)
+          ws.send("next\n");
+      });
+
+      $('body').on('click', '#clearbutton', function () {
+        ws.send("clearlist\n");
+      });
+
+      $('body').on('click', '.streamlink', function () {
+        ws.send("presetstation\n" + $(this).index());
+      });
+
+      $('#searchpattern').on('keydown', function (e) {
+        if (e.which == 13) $('#startsearch').click();
+      });
+
+      $('#infobutton').on('mouseup', function () {
+        $('#overlay').css('display', ($('#overlay').css('display') === 'block') ? 'none' : 'block');
+        setOverlayTimeOut();
+      });
+
+      $('#overlay').on('click', '#addfavorite', function (e) {
+        e.stopPropagation();
+        // See:
+        // https://eloquentjavascript.net/09_regexp.html
+        // https://averstak.tripod.com/fatdox/names.htm
+        // fatfs path name format - http://elm-chan.org/fsw/ff/doc/filename.html
+        // https://javascript.info/regexp-escaping
+        const validCharsRegex = /[^a-z0-9\. !#\$%&'\(\)@\^_`\{\}~\+,;=\[\]-]/gi;
+        var filename = prompt('Enter a filename', $('#showstation').text().replace(validCharsRegex, '').trim());
+        if (!filename) return;
+
+        // let the server receive a possibly invalid filename and respond to the error in the callback
+        ws.send("currenttofavorites\n" + filename);
+      });
+
+      $('body').on('change', '#volumeslider', function (e) {
+        ws.send("volume\n" + this.value);
+      });
+
+      $('#overlay').on('click', function () {
+        $(this).hide();
+      });
+
+      $('html').on('mouseover mousedown mouseup mousewheel mousemove input scroll resize contextmenu touchstart touchend touchmove touchcancel', function () {
+        setOverlayTimeOut();
+      });
+
+      $('#progressinput').on('click touchend', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        ws.send("jumptopos\n" + this.value)
+      });
+
+      $('body').on('click', '.foundlink', function (e) {
+        e.stopPropagation();
+        ws.send("foundlink\n" + this.getAttribute('data-url') + '\n' + this.getAttribute('data-name'));
+        $.get(baseurl + '/json/url/' + this.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
+      $('body').on('click', '.foundlink span.text', function (e) {
+        e.stopPropagation();
+        ws.send("foundlink\n" + this.parentElement.getAttribute('data-url') + '\n' + this.parentElement.getAttribute('data-name'));
+        $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
+      $('body').on('click', '.foundlink img.icon.starticon', function (e) {
+        e.stopPropagation();
+        ws.send("_foundlink\n" + this.parentElement.getAttribute('data-url') + '\n' + this.parentElement.getAttribute('data-name'));
+        $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
+      $('body').on('click', '.foundlink img.icon.nosslicon', function (e) {
+        e.stopPropagation();
+        const nosslurl = 'http' + this.parentElement.getAttribute('data-url').substring(5);
+        ws.send("_foundlink\n" + nosslurl + '\n' + this.parentElement.getAttribute('data-name'));
+        $.get(baseurl + '/json/url/' + this.parentElement.getAttribute('data-station-uuid'), function (data) { console.log(data); });
+      });
+
+      $('body').on('click', '#previouspage', function () {
+        getStations(searchquery, --currentPage);
+      });
+
+      $('body').on('click', '#nextpage', function () {
+        getStations(searchquery, ++currentPage);
+      });
+
+      $('#messageoverlay').on('mouseover', function () {
+        $('#messageoverlay').css('display', 'none');
+      });
+
+      document.addEventListener('visibilitychange', e => {
+        switch (document.visibilityState) {
+          case 'visible':
+            ws.open();
+            break;
+          case 'hidden':
+            ws.close();
+            break;
+          default:
+        }
+      });
+
+      refreshAllTabs();
+
+      setUserAgent(window, "eStreamPlayer32 - https://github.com/CelliesProjects/eStreamPlayer32_VS1053");
+
+      $('#radiobutton').click();
+    });
+  </script>
 </body>
+
 </html>

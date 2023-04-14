@@ -1,21 +1,25 @@
 # eStreamPlayer32_VS1053
 
-A web-based esp32 program to play webradio and mp3/aac/aac+ files from a lamp or llmp server.
-Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board.
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/92cb39100b59456cb791bb77c9f37590)](https://app.codacy.com/gh/CelliesProjects/eStreamPlayer32_VS1053/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
-Supports http, https (insecure mode) and chunked streams.
+A web-based esp32 music player for webradio and mp3/ogg/aac/aac+ files from a lamp or llmp server.
+Sound output comes from a separate VS1053 mp3/aac/ogg/wav decoder breakout board.
+The web interface has [radio-browser.info](https://www.radio-browser.info/) search integrated.
+
+Supports http, https (insecure mode)/chunked streams.
 
 Plays mp3, ogg, aac and aac+ streams.
 
 ### What does it do?
 
--  play preset radio stations
--  play your local files
--  you can play new urls and save these to favorites
--  you can control the music player with your phone, pc or tablet
+-  Play your local files (over http)
+-  Play preset radio stations
+-  Search for new radio stations on [radio-browser.info](https://www.radio-browser.info/) and save these to favorites
+ 
+ You control the music player with a browser on your phone, pc or tablet.
 
 
-### Limitations
+### Local file playback limitations 
 
 eStreamPlayer is written for playback over http(s). What this means is that you will need a (lamp or llmp) webserver to play back your local files.<br>This is because the esp32 does not speak NFS or SMB which are common ways to share files over a network. Instead eStreamPlayer uses a php script on the server to navigate the music folders. Copy this script to the server to use your music library.<br>**This is totally insecure and should only be used on a LAN!**
 
@@ -69,6 +73,8 @@ Use [the latest ESP32 Arduino Core version.](https://github.com/espressif/arduin
 
 ### Libraries used in the web interface
 
+
+-   The [radio-browser.info](https://www.radio-browser.info/) API is used for the search. The returned data is in the public domain.<br>See [de1.api.radio-browser.info](https://de1.api.radio-browser.info/) for API information.
 -  The used icons are from [material.io](https://material.io/tools/icons/?style=baseline) and are [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
 -  [Reconnecting WebSocket](https://github.com/joewalnes/reconnecting-websocket) which is [available under MIT licence](https://github.com/joewalnes/reconnecting-websocket/blob/master/LICENSE.txt).
 -  [Google Roboto font](https://fonts.google.com/specimen/Roboto) which is [available under Apache2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).

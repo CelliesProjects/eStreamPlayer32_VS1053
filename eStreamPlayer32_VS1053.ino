@@ -10,7 +10,9 @@
 #include "icons.h"
 #include "system_setup.h"
 
-static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.2";
+static const char* VERSION_STRING = "eStreamPlayer32 for VS1053 v2.0.2"
+                                    "<br><br>"
+                                    "Search API provided by: <a href=\"https://www.radio-browser.info/\" target=\"_blank\">radio-browser.info</a>";
 
 struct playerMessage {
     enum playerAction { SET_VOLUME,
@@ -98,6 +100,10 @@ void playerTask(void* parameter) {
 //                                   H E L P E R - R O U T I N E S                       *
 //****************************************************************************************
 
+inline __attribute__((always_inline)) void updateCurrentItemOnClients() {
+    ws.printfAll("%s\n%i\n", CURRENT_HEADER, playList.currentItem());
+}
+
 void startItem(uint8_t const index, size_t offset = 0) {
     updateCurrentItemOnClients();
     audio_showstreamtitle("");
@@ -154,10 +160,6 @@ void playlistHasEnded() {
     updateCurrentItemOnClients();
 }
 
-inline __attribute__((always_inline)) void updateCurrentItemOnClients() {
-    ws.printfAll("%s\n%i\n", CURRENT_HEADER, playList.currentItem());
-}
-
 void upDatePlaylistOnClients() {
     {
         String s;
@@ -178,15 +180,15 @@ bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, con
         case HTTP_PRESET:
             log_d("preset (wont save) %s %s", preset[item.index].name.c_str(), preset[item.index].url.c_str());
             return false;
-        case HTTP_STREAM:
+        case HTTP_FOUND:
         case HTTP_FAVORITE:
             {
-                log_d("saving stream: %s -> %s", filename, item.url.c_str());
                 char path[strlen(FAVORITES_FOLDER) + strlen(filename) + 1];
                 snprintf(path, sizeof(path), "%s%s", FAVORITES_FOLDER, filename);
                 File file = FFat.open(path, FILE_WRITE);
                 if (!file) {
-                    log_e("failed to open file for writing");
+                    log_e("failed to open '%s' for writing", filename);
+                    client->printf("%s\nERROR: Could not open '%s' for writing!", MESSAGE_HEADER, filename);
                     return false;
                 }
                 char url[item.url.length() + 2];
@@ -194,10 +196,11 @@ bool saveItemToFavorites(AsyncWebSocketClient* client, const char* filename, con
                 const auto bytesWritten = file.print(url);
                 file.close();
                 if (bytesWritten < strlen(url)) {
-                    log_e("ERROR! saving '%s' failed - disk full?", filename);
-                    client->printf("%s\nCould not save '%s' to favorites!", MESSAGE_HEADER, filename);
+                    log_e("ERROR! Saving '%s' failed - disk full?", filename);
+                    client->printf("%s\nERROR: Could not completely save '%s' to favorites!", MESSAGE_HEADER, filename);
                     return false;
                 }
+                client->printf("%s\nSaved '%s' to favorites!", MESSAGE_HEADER, filename);
                 return true;
             }
             break;
@@ -300,6 +303,12 @@ static inline __attribute__((always_inline)) bool htmlUnmodified(const AsyncWebS
 
 void setup() {
     log_i("\n\n\t\t\t\t%s\n", VERSION_STRING);
+
+    const uint32_t idf = ESP_IDF_VERSION_PATCH + ESP_IDF_VERSION_MINOR *10 + ESP_IDF_VERSION_MAJOR * 100;
+    const uint32_t ard = ESP_ARDUINO_VERSION_PATCH + ESP_ARDUINO_VERSION_MINOR * 10 + ESP_ARDUINO_VERSION_MAJOR * 100;
+    log_i("ESP32 IDF Version %d.%d.%d", idf/100%10, idf/10%10 , idf%10);
+    log_i("ESP32 Arduino Version %d.%d.%d", ard/100%10, ard/10%10 , ard%10);    
+
     log_i("CPU: %iMhz", getCpuFrequencyMhz());
     log_d("Heap: %d", ESP.getHeapSize());
     log_d("Free: %d", ESP.getFreeHeap());
@@ -482,6 +491,20 @@ void setup() {
     server.on("/pauseicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
         if (htmlUnmodified(request, modifiedDate)) return request->send(304);
         AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, pauseicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
+    server.on("/searchicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, searchicon);
+        response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
+        request->send(response);
+    });
+
+    server.on("/nosslicon.svg", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (htmlUnmodified(request, modifiedDate)) return request->send(304);
+        AsyncWebServerResponse* const response = request->beginResponse_P(200, SVG_MIMETYPE, nosslicon);
         response->addHeader(HEADER_LASTMODIFIED, modifiedDate);
         request->send(response);
     });
