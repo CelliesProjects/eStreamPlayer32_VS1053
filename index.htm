@@ -656,7 +656,7 @@
         var command = e.data.split("\n");
         switch (command[0]) {
           case "currentPLitem":
-            $('#progress2').hide();
+            $('#progress2, #progressinput').hide();
             $('.plitem').css("background-color", "");
             currentItem = parseInt(command[1]);
             if (-1 == currentItem) {
@@ -713,7 +713,7 @@
             break;
 
           case "progress":
-            $('#progress2').show();
+            $('#progress2, #progressinput').show();
             $('#progress2').attr("value", command[1]);
             $('#progress2').attr("max", command[2]);
             $('#progressinput').attr("max", command[2]);
