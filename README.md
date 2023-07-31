@@ -1,5 +1,7 @@
 # eStreamPlayer32_VS1053
 
+#### July 31 2023 - This project will not be continued as an Arduino IDE project.<br>Development will continue as a PlatformIO project at [eStreamplayer32-vs1053-pio](https://github.com/CelliesProjects/eStreamplayer32-vs1053-pio). 
+
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/92cb39100b59456cb791bb77c9f37590)](https://app.codacy.com/gh/CelliesProjects/eStreamPlayer32_VS1053/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 A web-based esp32 music player for webradio and mp3/ogg/aac/aac+ files from a lamp or llmp server.
